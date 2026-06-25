@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Licitações — VIVVER / CRESCER</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117; --bg2: #181c27; --bg3: #1e2333;
+    --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.14);
+    --text: #e8eaf0; --text2: #8b91a8; --text3: #555d75;
+    --radius: 10px; --radius-lg: 14px;
+    --amber: #f59e0b; --amber-bg: rgba(245,158,11,0.12); --amber-text: #fbbf24;
+    --green: #22c55e; --green-bg: rgba(34,197,94,0.12); --green-text: #4ade80;
+    --blue: #3b82f6; --blue-bg: rgba(59,130,246,0.12); --blue-text: #60a5fa;
+    --gray-bg: rgba(148,163,184,0.08); --gray-text: #94a3b8;
+    --red: #ef4444; --red-bg: rgba(239,68,68,0.12); --red-text: #f87171;
+    --accent: #6366f1; --accent-bg: rgba(99,102,241,0.15);
+  }
+  html, body { height: 100%; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+  .app { display: flex; flex-direction: column; min-height: 100vh; padding: 14px 16px; gap: 12px; }
+
+  .header { display: flex; align-items: center; justify-content: space-between; background: var(--bg2); border: 0.5px solid var(--border2); border-radius: var(--radius-lg); padding: 12px 18px; }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo-icon { width: 38px; height: 38px; border-radius: var(--radius); background: var(--accent-bg); border: 0.5px solid rgba(99,102,241,0.3); display: flex; align-items: center; justify-content: center; color: #818cf8; font-size: 18px; flex-shrink: 0; }
+  .header-title { font-size: 16px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .header-sub { font-size: 11px; color: var(--text2); margin-top: 1px; }
+  .turno-pill { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; background: var(--accent-bg); color: #a5b4fc; border: 0.5px solid rgba(99,102,241,0.3); }
+  .clock { font-size: 24px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; letter-spacing: -0.5px; text-align: right; }
+  .datestr { font-size: 11px; color: var(--text2); margin-top: 2px; text-align: right; }
+
+  .input-panel { background: var(--bg2); border: 0.5px solid var(--border2); border-radius: var(--radius-lg); padding: 14px 16px; }
+  .input-label { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 8px; }
+  textarea { width: 100%; min-height: 90px; max-height: 180px; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 10px 12px; color: var(--text); font-family: inherit; font-size: 12px; resize: vertical; outline: none; line-height: 1.5; transition: border-color 0.15s; }
+  textarea:focus { border-color: rgba(99,102,241,0.5); }
+  textarea::placeholder { color: var(--text3); }
+  .btn-row { display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: wrap; }
+  .btn-primary { background: var(--accent); border: none; border-radius: var(--radius); padding: 8px 16px; font-size: 13px; font-weight: 500; color: #fff; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: opacity 0.15s, transform 0.1s; }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-secondary { background: transparent; border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 8px 12px; font-size: 12px; color: var(--text2); cursor: pointer; transition: background 0.15s; }
+  .btn-secondary:hover { background: var(--bg3); }
+  .status-ok { font-size: 12px; color: var(--green-text); margin-left: auto; display: flex; align-items: center; gap: 5px; }
+  .status-err { font-size: 12px; color: var(--red-text); margin-left: auto; }
+
+  .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .stat { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+  .stat-label { font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+  .stat-value { font-size: 24px; font-weight: 600; color: var(--text); }
+  .stat-value.c-amber { color: var(--amber-text); }
+  .stat-value.c-green { color: var(--green-text); }
+  .stat-value.c-red   { color: var(--red-text); }
+  .stat-value.c-gray  { color: var(--gray-text); }
+
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tab { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; border: 0.5px solid var(--border2); background: var(--bg2); color: var(--text2); cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 5px; }
+  .tab:hover { background: var(--bg3); }
+  .tab.active { background: var(--accent-bg); color: #a5b4fc; border-color: rgba(99,102,241,0.35); }
+  .dot-tab { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; }
+  .li { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text3); }
+  .dot-lg { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+  .card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 13px 14px; display: flex; flex-direction: column; gap: 7px; border-left-width: 3px; border-left-style: solid; }
+  .card.alerta  { border-left-color: var(--amber); }
+  .card.ok      { border-left-color: var(--green); }
+  .card.espera  { border-left-color: var(--blue); }
+  .card.suspenso{ border-left-color: #475569; }
+  .card.atencao { border-left-color: var(--red); }
+  .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .card-title { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.4; flex: 1; }
+  .badge { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; letter-spacing: 0.02em; text-transform: uppercase; }
+  .badge-alerta  { background: var(--amber-bg); color: var(--amber-text); }
+  .badge-ok      { background: var(--green-bg); color: var(--green-text); }
+  .badge-espera  { background: var(--blue-bg); color: var(--blue-text); }
+  .badge-suspenso{ background: var(--gray-bg); color: var(--gray-text); }
+  .badge-atencao { background: var(--red-bg); color: var(--red-text); }
+  .card-sub { font-size: 11px; color: var(--text2); }
+  .card-date { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text3); }
+  .card-update { font-size: 11px; color: var(--text2); line-height: 1.55; border-top: 0.5px solid var(--border); padding-top: 7px; }
+  .highlight { background: rgba(245,158,11,0.1); color: var(--amber-text); border: 0.5px solid rgba(245,158,11,0.25); font-size: 11px; font-weight: 500; padding: 4px 9px; border-radius: var(--radius); display: inline-flex; align-items: center; gap: 5px; margin-top: 2px; }
+
+  .empty { grid-column: 1 / -1; text-align: center; padding: 48px 20px; color: var(--text3); font-size: 13px; }
+  .empty-icon { font-size: 34px; margin-bottom: 10px; opacity: 0.35; display: block; }
+
+  .footer { text-align: center; font-size: 11px; color: var(--text3); padding-bottom: 4px; }
+  .footer span { color: var(--text2); }
+
+  .tv-btn { position: fixed; bottom: 14px; right: 14px; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 7px 12px; font-size: 11px; color: var(--text2); cursor: pointer; display: flex; align-items: center; gap: 6px; z-index: 100; }
+  .tv-btn:hover { background: var(--bg2); }
+  body.tv-mode .input-panel { display: none; }
+
+  @media (max-width: 700px) { .stats-row { grid-template-columns: repeat(3, 1fr); } .header-right { display: none; } }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="header">
+    <div class="header-left">
+      <div class="logo-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </div>
+      <div>
+        <div class="header-title">Painel de Licitações <span class="turno-pill" id="turno-pill">—</span></div>
+        <div class="header-sub">VIVVER / CRESCER Tecnologia — Cole o JSON abaixo para atualizar</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="clock" id="clock">--:--:--</div>
+      <div class="datestr" id="datestr">---</div>
+    </div>
+  </header>
+
+  <div class="input-panel" id="input-panel">
+    <div class="input-label">📋 Cole o JSON gerado pelo Claude (no chat) e clique em Carregar</div>
+    <textarea id="json-input" placeholder='Cole aqui o JSON gerado pelo Claude. Exemplo:&#10;[&#10;  {"titulo":"Paraíba do Sul / RJ","sub":"POC agendada","status":"alerta","badge":"POC 03/07","data":"03/07/2026 14:00","update":"Nova POC acordada...","destaque":"Preparar material"},&#10;  ...&#10;]'></textarea>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="carregarJSON()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+        Carregar painel
+      </button>
+      <button class="btn-secondary" onclick="document.getElementById('json-input').value=''">Limpar</button>
+      <div id="status-area"></div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat"><div class="stat-label">Total de processos</div><div class="stat-value" id="s-total">—</div></div>
+    <div class="stat"><div class="stat-label">Com data / ação</div><div class="stat-value c-amber" id="s-alerta">—</div></div>
+    <div class="stat"><div class="stat-label">Vencedores</div><div class="stat-value c-green" id="s-ok">—</div></div>
+    <div class="stat"><div class="stat-label">Recursos / impug.</div><div class="stat-value c-red" id="s-atencao">—</div></div>
+    <div class="stat"><div class="stat-label">Suspensos</div><div class="stat-value c-gray" id="s-suspenso">—</div></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-f="todos"    onclick="filtrar('todos',this)"><div class="dot-tab" style="background:#818cf8"></div> Todos</div>
+    <div class="tab"        data-f="alerta"   onclick="filtrar('alerta',this)"><div class="dot-tab" style="background:#f59e0b"></div> Com data</div>
+    <div class="tab"        data-f="ok"       onclick="filtrar('ok',this)"><div class="dot-tab" style="background:#22c55e"></div> Vencedores</div>
+    <div class="tab"        data-f="atencao"  onclick="filtrar('atencao',this)"><div class="dot-tab" style="background:#ef4444"></div> Recursos</div>
+    <div class="tab"        data-f="espera"   onclick="filtrar('espera',this)"><div class="dot-tab" style="background:#3b82f6"></div> Aguardando</div>
+    <div class="tab"        data-f="suspenso" onclick="filtrar('suspenso',this)"><div class="dot-tab" style="background:#475569"></div> Suspensos</div>
+  </div>
+
+  <div class="legend">
+    <div class="li"><div class="dot-lg" style="background:#f59e0b"></div> Data próxima / ação</div>
+    <div class="li"><div class="dot-lg" style="background:#22c55e"></div> Vencedor / habilitado</div>
+    <div class="li"><div class="dot-lg" style="background:#3b82f6"></div> Aguardando</div>
+    <div class="li"><div class="dot-lg" style="background:#475569"></div> Suspenso</div>
+    <div class="li"><div class="dot-lg" style="background:#ef4444"></div> Impugnação / recurso</div>
+  </div>
+
+  <div class="grid" id="grid">
+    <div class="empty">
+      <span class="empty-icon">📋</span>
+      Peça ao Claude no chat para processar o boletim e cole o JSON gerado aqui.<br>
+      <small style="margin-top:8px;display:block;color:var(--text3)">Diga: <em>"processar boletim"</em> e cole o texto do WhatsApp.</small>
+    </div>
+  </div>
+
+  <div class="footer">Última atualização: <span id="last-update">—</span> &nbsp;·&nbsp; VIVVER / CRESCER Tecnologia</div>
+</div>
+
+<button class="tv-btn" onclick="document.body.classList.toggle('tv-mode')" title="Modo TV (F2)">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>
+  Modo TV
+</button>
+
+<script>
+let processos = [];
+let filtroAtivo = 'todos';
+
+function updateClock() {
+  const n = new Date();
+  const h = n.getHours();
+  document.getElementById('clock').textContent = n.toLocaleTimeString('pt-BR');
+  document.getElementById('datestr').textContent = n.toLocaleDateString('pt-BR', {weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  document.getElementById('turno-pill').textContent = h < 12 ? 'Boletim Manhã' : 'Boletim Tarde';
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+function carregarJSON() {
+  const raw = (document.getElementById('json-input').value || '').trim();
+  const area = document.getElementById('status-area');
+  if (!raw) { area.innerHTML = '<span class="status-err">Cole o JSON primeiro.</span>'; return; }
+  let parsed;
+  try {
+    const clean = raw.replace(/```json|```/g, '').trim();
+    parsed = JSON.parse(clean);
+    if (!Array.isArray(parsed)) throw new Error('Esperado um array JSON');
+  } catch(e) {
+    area.innerHTML = '<span class="status-err">JSON inválido: ' + e.message + '</span>';
+    return;
+  }
+  processos = parsed;
+  filtroAtivo = 'todos';
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('[data-f="todos"]').classList.add('active');
+  renderStats();
+  renderGrid();
+  document.getElementById('last-update').textContent = new Date().toLocaleTimeString('pt-BR') + ' — ' + processos.length + ' processo(s)';
+  area.innerHTML = '<span class="status-ok">✓ ' + processos.length + ' processo(s) carregado(s)</span>';
+}
+
+function renderStats() {
+  const c = {total:processos.length,alerta:0,ok:0,atencao:0,suspenso:0,espera:0};
+  processos.forEach(p => { if(p.status in c) c[p.status]++; });
+  document.getElementById('s-total').textContent = c.total;
+  document.getElementById('s-alerta').textContent = c.alerta;
+  document.getElementById('s-ok').textContent = c.ok;
+  document.getElementById('s-atencao').textContent = c.atencao;
+  document.getElementById('s-suspenso').textContent = c.suspenso;
+}
+
+function filtrar(f, el) {
+  filtroAtivo = f;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderGrid();
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderGrid() {
+  const grid = document.getElementById('grid');
+  const lista = filtroAtivo === 'todos' ? processos : processos.filter(p => p.status === filtroAtivo);
+  if (!lista.length) {
+    grid.innerHTML = '<div class="empty"><span class="empty-icon">🔍</span>Nenhum processo nesta categoria.</div>';
+    return;
+  }
+  grid.innerHTML = lista.map(p => {
+    const s = p.status || 'espera';
+    const dest = p.destaque ? `<div class="highlight">⚠ ${esc(p.destaque)}</div>` : '';
+    return `<div class="card ${s}">
+      <div class="card-header">
+        <div class="card-title">${esc(p.titulo)}</div>
+        <span class="badge badge-${s}">${esc(p.badge||s)}</span>
+      </div>
+      ${p.sub ? `<div class="card-sub">${esc(p.sub)}</div>` : ''}
+      <div class="card-date">📅 ${esc(p.data||'—')}</div>
+      <div class="card-update">${esc(p.update||'')}</div>
+      ${dest}
+    </div>`;
+  }).join('');
+}
+
+document.addEventListener('keydown', e => { if(e.key==='F2') document.body.classList.toggle('tv-mode'); });
+</script>
+</body>
+</html>
