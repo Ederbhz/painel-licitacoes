@@ -307,8 +307,7 @@ async function carregarRemoto(silencioso = false) {
       setSyncStatus('warn', 'aguardando primeira publicação');
       return;
     }
-    const lista = Array.isArray(data) ? data : data.processos;
-    if (!Array.isArray(lista)) throw new Error('resposta sem array de processos');
+    const lista = Array.isArray(data) ? data : (Array.isArray(data.processos) ? data.processos : []);
     const updatedAt = data.updatedAt || '';
     if (updatedAt && updatedAt === ultimaVersaoRemota) {
       setSyncStatus('ok', 'online, sem novidades');
