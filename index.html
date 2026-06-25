@@ -43,6 +43,17 @@
   .btn-secondary:hover { background: var(--bg3); }
   .status-ok { font-size: 12px; color: var(--green-text); margin-left: auto; display: flex; align-items: center; gap: 5px; }
   .status-err { font-size: 12px; color: var(--red-text); margin-left: auto; }
+  .sync-panel { background: var(--bg2); border: 0.5px solid var(--border2); border-radius: var(--radius-lg); padding: 9px 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .sync-left { display: flex; align-items: center; gap: 8px; min-width: 260px; flex: 1; }
+  .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray-text); flex-shrink: 0; }
+  .sync-dot.ok { background: var(--green); box-shadow: 0 0 0 4px var(--green-bg); }
+  .sync-dot.warn { background: var(--amber); box-shadow: 0 0 0 4px var(--amber-bg); }
+  .sync-dot.err { background: var(--red); box-shadow: 0 0 0 4px var(--red-bg); }
+  .sync-text { font-size: 12px; color: var(--text2); }
+  .sync-text strong { color: var(--text); font-weight: 600; }
+  .sync-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .btn-mini { background: transparent; border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 6px 10px; font-size: 11px; color: var(--text2); cursor: pointer; transition: background 0.15s; }
+  .btn-mini:hover { background: var(--bg3); }
 
   .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
   .stat { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
@@ -92,6 +103,7 @@
   .tv-btn { position: fixed; bottom: 14px; right: 14px; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 7px 12px; font-size: 11px; color: var(--text2); cursor: pointer; display: flex; align-items: center; gap: 6px; z-index: 100; }
   .tv-btn:hover { background: var(--bg2); }
   body.tv-mode .input-panel { display: none; }
+  body.tv-mode .sync-panel { border-color: rgba(34,197,94,0.24); }
 
   @media (max-width: 700px) { .stats-row { grid-template-columns: repeat(3, 1fr); } .header-right { display: none; } }
 </style>
@@ -115,13 +127,28 @@
     </div>
   </header>
 
+  <div class="sync-panel">
+    <div class="sync-left">
+      <span class="sync-dot" id="sync-dot"></span>
+      <div class="sync-text" id="sync-status"><strong>Sincronização:</strong> não configurada</div>
+    </div>
+    <div class="sync-actions">
+      <button class="btn-mini" onclick="sincronizarAgora()">Sincronizar agora</button>
+      <button class="btn-mini" onclick="configurarSync()">Configurar</button>
+    </div>
+  </div>
+
   <div class="input-panel" id="input-panel">
-    <div class="input-label">📋 Cole o JSON gerado pelo Claude (no chat) e clique em Carregar</div>
+    <div class="input-label">📋 Cole o JSON gerado pelo Claude (no chat), pré-visualize ou publique para a TV</div>
     <textarea id="json-input" placeholder='Cole aqui o JSON gerado pelo Claude. Exemplo:&#10;[&#10;  {"titulo":"Paraíba do Sul / RJ","sub":"POC agendada","status":"alerta","badge":"POC 03/07","data":"03/07/2026 14:00","update":"Nova POC acordada...","destaque":"Preparar material"},&#10;  ...&#10;]'></textarea>
     <div class="btn-row">
       <button class="btn-primary" onclick="carregarJSON()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
         Carregar painel
+      </button>
+      <button class="btn-primary" onclick="publicarJSON()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+        Publicar para TV
       </button>
       <button class="btn-secondary" onclick="document.getElementById('json-input').value=''">Limpar</button>
       <div id="status-area"></div>
@@ -164,7 +191,7 @@
   <div class="footer">Última atualização: <span id="last-update">—</span> &nbsp;·&nbsp; VIVVER / CRESCER Tecnologia</div>
 </div>
 
-<button class="tv-btn" onclick="document.body.classList.toggle('tv-mode')" title="Modo TV (F2)">
+<button class="tv-btn" onclick="ativarModoTV()" title="Modo TV (F2)">
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>
   Modo TV
 </button>
@@ -172,6 +199,11 @@
 <script>
 let processos = [];
 let filtroAtivo = 'todos';
+let ultimaVersaoRemota = '';
+
+const SYNC_STORAGE_KEY = 'painel_licitacoes_sync_endpoint';
+const SYNC_INTERVAL_MS = 5000;
+const DEFAULT_SYNC_ENDPOINT = '';
 
 function updateClock() {
   const n = new Date();
@@ -183,27 +215,151 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-function carregarJSON() {
+function getSyncEndpoint() {
+  return (localStorage.getItem(SYNC_STORAGE_KEY) || DEFAULT_SYNC_ENDPOINT || '').trim();
+}
+
+function setSyncStatus(tipo, html) {
+  const dot = document.getElementById('sync-dot');
+  dot.className = 'sync-dot' + (tipo ? ' ' + tipo : '');
+  document.getElementById('sync-status').innerHTML = '<strong>Sincronização:</strong> ' + html;
+}
+
+function parseJSONInput() {
   const raw = (document.getElementById('json-input').value || '').trim();
   const area = document.getElementById('status-area');
-  if (!raw) { area.innerHTML = '<span class="status-err">Cole o JSON primeiro.</span>'; return; }
-  let parsed;
+  if (!raw) {
+    area.innerHTML = '<span class="status-err">Cole o JSON primeiro.</span>';
+    return null;
+  }
   try {
     const clean = raw.replace(/```json|```/g, '').trim();
-    parsed = JSON.parse(clean);
+    const parsed = JSON.parse(clean);
     if (!Array.isArray(parsed)) throw new Error('Esperado um array JSON');
+    return parsed;
   } catch(e) {
     area.innerHTML = '<span class="status-err">JSON inválido: ' + e.message + '</span>';
-    return;
+    return null;
   }
-  processos = parsed;
+}
+
+function aplicarProcessos(lista, origem, updatedAt) {
+  processos = Array.isArray(lista) ? lista : [];
   filtroAtivo = 'todos';
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelector('[data-f="todos"]').classList.add('active');
   renderStats();
   renderGrid();
-  document.getElementById('last-update').textContent = new Date().toLocaleTimeString('pt-BR') + ' — ' + processos.length + ' processo(s)';
-  area.innerHTML = '<span class="status-ok">✓ ' + processos.length + ' processo(s) carregado(s)</span>';
+  const data = updatedAt ? new Date(updatedAt) : new Date();
+  const hora = isNaN(data.getTime()) ? new Date().toLocaleTimeString('pt-BR') : data.toLocaleTimeString('pt-BR');
+  document.getElementById('last-update').textContent = hora + ' — ' + processos.length + ' processo(s)' + (origem ? ' — ' + origem : '');
+}
+
+function carregarJSON() {
+  const parsed = parseJSONInput();
+  if (!parsed) return;
+  aplicarProcessos(parsed, 'pré-visualização');
+  document.getElementById('status-area').innerHTML = '<span class="status-ok">✓ ' + parsed.length + ' processo(s) carregado(s) localmente</span>';
+}
+
+async function publicarJSON() {
+  const parsed = parseJSONInput();
+  if (!parsed) return;
+  aplicarProcessos(parsed, 'publicação local');
+  const endpoint = getSyncEndpoint();
+  if (!endpoint) {
+    document.getElementById('status-area').innerHTML = '<span class="status-err">Configure a URL de sincronização antes de publicar para a TV.</span>';
+    setSyncStatus('warn', 'URL remota ausente');
+    return;
+  }
+  const payload = {
+    updatedAt: new Date().toISOString(),
+    processos: parsed
+  };
+  try {
+    const res = await fetch(endpoint, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    ultimaVersaoRemota = payload.updatedAt;
+    document.getElementById('status-area').innerHTML = '<span class="status-ok">✓ Publicado para a TV (' + parsed.length + ' processo(s))</span>';
+    setSyncStatus('ok', 'publicado às ' + new Date(payload.updatedAt).toLocaleTimeString('pt-BR'));
+  } catch(e) {
+    document.getElementById('status-area').innerHTML = '<span class="status-err">Falha ao publicar: ' + esc(e.message) + '</span>';
+    setSyncStatus('err', 'falha ao publicar');
+  }
+}
+
+async function carregarRemoto(silencioso = false) {
+  const endpoint = getSyncEndpoint();
+  if (!endpoint) {
+    setSyncStatus('warn', 'não configurada');
+    return;
+  }
+  try {
+    const sep = endpoint.includes('?') ? '&' : '?';
+    const res = await fetch(endpoint + sep + 't=' + Date.now(), {cache: 'no-store'});
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (!data) {
+      setSyncStatus('warn', 'aguardando primeira publicação');
+      return;
+    }
+    const lista = Array.isArray(data) ? data : data.processos;
+    if (!Array.isArray(lista)) throw new Error('resposta sem array de processos');
+    const updatedAt = data.updatedAt || '';
+    if (updatedAt && updatedAt === ultimaVersaoRemota) {
+      setSyncStatus('ok', 'online, sem novidades');
+      return;
+    }
+    ultimaVersaoRemota = updatedAt || String(Date.now());
+    aplicarProcessos(lista, 'sincronizado', updatedAt);
+    setSyncStatus('ok', 'atualizado às ' + new Date().toLocaleTimeString('pt-BR'));
+  } catch(e) {
+    if (!silencioso) document.getElementById('status-area').innerHTML = '<span class="status-err">Falha ao sincronizar: ' + esc(e.message) + '</span>';
+    setSyncStatus('err', 'erro na leitura remota');
+  }
+}
+
+function sincronizarAgora() {
+  carregarRemoto(false);
+}
+
+function configurarSync() {
+  const atual = getSyncEndpoint();
+  const exemplo = 'https://SEU-PROJETO-default-rtdb.firebaseio.com/painel-licitacoes/current.json';
+  const endpoint = prompt('Cole a URL de sincronização (ex.: Firebase Realtime Database .json):', atual || exemplo);
+  if (endpoint === null) return;
+  const valor = endpoint.trim();
+  if (valor) {
+    localStorage.setItem(SYNC_STORAGE_KEY, valor);
+    setSyncStatus('ok', 'configurada');
+    carregarRemoto(true);
+  } else {
+    localStorage.removeItem(SYNC_STORAGE_KEY);
+    setSyncStatus('warn', 'não configurada');
+  }
+}
+
+function ativarModoTV() {
+  document.body.classList.toggle('tv-mode');
+  localStorage.setItem('painel_licitacoes_tv_mode', document.body.classList.contains('tv-mode') ? '1' : '0');
+}
+
+function iniciarPainel() {
+  const params = new URLSearchParams(location.search);
+  if (params.get('tv') === '1' || localStorage.getItem('painel_licitacoes_tv_mode') === '1') {
+    document.body.classList.add('tv-mode');
+  }
+  if (getSyncEndpoint()) {
+    setSyncStatus('ok', 'conectando...');
+    carregarRemoto(true);
+  } else {
+    setSyncStatus('warn', 'não configurada');
+  }
+  setInterval(() => carregarRemoto(true), SYNC_INTERVAL_MS);
 }
 
 function renderStats() {
@@ -250,7 +406,8 @@ function renderGrid() {
   }).join('');
 }
 
-document.addEventListener('keydown', e => { if(e.key==='F2') document.body.classList.toggle('tv-mode'); });
+document.addEventListener('keydown', e => { if(e.key==='F2') ativarModoTV(); });
+iniciarPainel();
 </script>
 </body>
 </html>
