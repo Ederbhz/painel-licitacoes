@@ -104,6 +104,38 @@
   .tv-btn:hover { background: var(--bg2); }
   body.tv-mode .input-panel { display: none; }
   body.tv-mode .sync-panel { border-color: rgba(34,197,94,0.24); }
+  body.tv-mode { background: #080b12; font-size: 16px; }
+  body.tv-mode .app { padding: 18px 22px 22px; gap: 14px; }
+  body.tv-mode .header { padding: 16px 22px; border-radius: 12px; background: #151a27; }
+  body.tv-mode .logo-icon { width: 48px; height: 48px; }
+  body.tv-mode .header-title { font-size: 22px; gap: 10px; }
+  body.tv-mode .header-sub { font-size: 13px; color: #b5bdd6; }
+  body.tv-mode .turno-pill { font-size: 12px; padding: 4px 12px; }
+  body.tv-mode .clock { font-size: 34px; letter-spacing: 0; }
+  body.tv-mode .datestr { font-size: 13px; color: #b5bdd6; }
+  body.tv-mode .sync-panel { padding: 12px 18px; background: #151a27; border-radius: 12px; }
+  body.tv-mode .sync-dot { width: 11px; height: 11px; }
+  body.tv-mode .sync-text { font-size: 15px; color: #c8d0e6; }
+  body.tv-mode .sync-actions,
+  body.tv-mode .tabs,
+  body.tv-mode .tv-btn { display: none; }
+  body.tv-mode .stats-row { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+  body.tv-mode .stat { padding: 14px 16px; background: #151a27; border-color: rgba(255,255,255,0.14); }
+  body.tv-mode .stat-label { font-size: 13px; color: #aeb7d4; }
+  body.tv-mode .stat-value { font-size: 36px; line-height: 1.05; }
+  body.tv-mode .legend { gap: 18px; align-items: center; }
+  body.tv-mode .li { font-size: 13px; color: #aeb7d4; }
+  body.tv-mode .dot-lg { width: 10px; height: 10px; }
+  body.tv-mode .grid { grid-template-columns: repeat(auto-fill, minmax(390px, 1fr)); gap: 14px; }
+  body.tv-mode .card { padding: 16px 18px; gap: 10px; border-left-width: 5px; background: #151a27; border-color: rgba(255,255,255,0.13); box-shadow: 0 12px 28px rgba(0,0,0,0.22); }
+  body.tv-mode .card-title { font-size: 17px; line-height: 1.28; }
+  body.tv-mode .badge { font-size: 12px; padding: 4px 10px; }
+  body.tv-mode .card-sub,
+  body.tv-mode .card-date,
+  body.tv-mode .card-update { font-size: 14px; color: #c0c8df; }
+  body.tv-mode .card-update { line-height: 1.48; padding-top: 10px; }
+  body.tv-mode .highlight { width: 100%; justify-content: center; font-size: 14px; padding: 7px 10px; margin-top: 2px; }
+  body.tv-mode .footer { font-size: 12px; color: #7f8aac; }
 
   @media (max-width: 700px) { .stats-row { grid-template-columns: repeat(3, 1fr); } .header-right { display: none; } }
 </style>
