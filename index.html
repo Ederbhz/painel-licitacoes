@@ -276,9 +276,9 @@
     <div class="sheet-kpis">
       <div class="sheet-kpi"><div class="sheet-kpi-label">Total monitorado</div><div class="sheet-kpi-value" id="sheet-total">â€”</div></div>
       <div class="sheet-kpi"><div class="sheet-kpi-label">Em andamento</div><div class="sheet-kpi-value" id="sheet-open">â€”</div></div>
-      <div class="sheet-kpi"><div class="sheet-kpi-label">Vencidos</div><div class="sheet-kpi-value danger" id="sheet-late">â€”</div></div>
+      <div class="sheet-kpi"><div class="sheet-kpi-label">Atrasados</div><div class="sheet-kpi-value danger" id="sheet-late">â€”</div></div>
       <div class="sheet-kpi"><div class="sheet-kpi-label">PrÃ³x. 7 dias</div><div class="sheet-kpi-value warn" id="sheet-soon">â€”</div></div>
-      <div class="sheet-kpi"><div class="sheet-kpi-label">ConcluÃ­dos</div><div class="sheet-kpi-value ok" id="sheet-done">â€”</div></div>
+      <div class="sheet-kpi"><div class="sheet-kpi-label">Ganhos</div><div class="sheet-kpi-value ok" id="sheet-done">â€”</div></div>
     </div>
     <div class="sheet-panels">
       <div class="sheet-panel">
@@ -290,8 +290,8 @@
         <div id="sheet-status-bars"></div>
       </div>
       <div class="sheet-panel">
-        <h3>ResponsÃ¡veis / frentes</h3>
-        <div id="sheet-owner-bars"></div>
+        <h3>Ganhos / contratos</h3>
+        <div class="sheet-list" id="sheet-won-list"></div>
       </div>
     </div>
   </section>
@@ -316,8 +316,10 @@ const SYNC_INTERVAL_MS = 5000;
 const DEFAULT_SYNC_ENDPOINT = 'https://painel-licitacoes-59ef3-default-rtdb.firebaseio.com/painel-licitacoes/current.json';
 const DASHBOARD_ROTATE_MS = 120000;
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1EAAgIkYM_IS94SNU_fLT2ZgPVoKznu5THgwCp_RXbK4/gviz/tq?tqx=out:csv&gid=0';
+const WON_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1EAAgIkYM_IS94SNU_fLT2ZgPVoKznu5THgwCp_RXbK4/gviz/tq?tqx=out:csv&sheet=PROCESSOS%20GANHOS%2FREPROVADOS';
 
 let sheetRows = [];
+let wonRows = [];
 let sheetLoadedAt = '';
 let activeTvScreen = 'licitacoes';
 let tvNextSwitchAt = 0;
@@ -525,20 +527,27 @@ function renderStats() {
 
 async function carregarPlanilha(silencioso = false) {
   try {
-    const sep = SHEET_CSV_URL.includes('?') ? '&' : '?';
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 10000);
-    const res = await fetch(SHEET_CSV_URL + sep + 'cache=' + Date.now(), {cache: 'no-store', signal: controller.signal});
-    clearTimeout(timer);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const csv = await res.text();
-    const linhas = csvToObjects(csv).filter(row => Object.values(row).some(v => String(v || '').trim()));
-    sheetRows = linhas;
+    const [csv, wonCsv] = await Promise.all([fetchCsvUrl(SHEET_CSV_URL), fetchCsvUrl(WON_SHEET_CSV_URL)]);
+    sheetRows = csvToObjects(csv).filter(row => Object.values(row).some(v => String(v || '').trim()));
+    wonRows = csvToObjects(wonCsv).filter(row => Object.values(row).some(v => String(v || '').trim()));
     sheetLoadedAt = new Date().toISOString();
     renderSheetDashboard();
   } catch(e) {
     if (!silencioso) console.warn(e);
     renderSheetError(e.message);
+  }
+}
+
+async function fetchCsvUrl(url) {
+  const sep = url.includes('?') ? '&' : '?';
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+  try {
+    const res = await fetch(url + sep + 'cache=' + Date.now(), {cache: 'no-store', signal: controller.signal});
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.text();
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -577,6 +586,15 @@ function pickColumn(row, terms) {
   return keys.find(k => terms.some(t => norm(k).includes(t))) || '';
 }
 
+function pickColumnPriority(row, terms) {
+  const keys = Object.keys(row || {});
+  for (const term of terms) {
+    const found = keys.find(k => norm(k).includes(norm(term)));
+    if (found) return found;
+  }
+  return '';
+}
+
 function parseDataBR(value) {
   const s = String(value || '').trim();
   const m = s.match(/(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/);
@@ -605,6 +623,43 @@ function classificarLinha(row, cols) {
   return {done, date, days, late, soon};
 }
 
+function isStatusGanho(status) {
+  return ['homologado', 'contrato recebido', 'aguardando contrato', 'poc aprovada'].includes(norm(status));
+}
+
+function getGanhosPlanilha() {
+  if (!wonRows.length) return [];
+  const sample = wonRows[0];
+  const cols = {
+    status: pickColumn(sample, ['status','situacao','andamento']),
+    title: pickColumnPriority(sample, ['municipio','orgao','Ã³rgao','cliente','processo','pregao','dispensa','nome']) || Object.keys(sample)[0],
+    owner: pickColumn(sample, ['analista','responsavel','responsÃ¡vel','owner']),
+    company: pickColumn(sample, ['empresa']),
+    value: pickColumn(sample, ['valor estimado','valor'])
+  };
+  return wonRows
+    .filter(row => isStatusGanho(row[cols.status]))
+    .map(row => ({
+      title: row[cols.title] || 'Processo ganho',
+      status: row[cols.status] || 'Ganho',
+      owner: row[cols.owner] || '',
+      company: row[cols.company] || '',
+      value: row[cols.value] || ''
+    }));
+}
+
+function renderGanhosTV(ganhos) {
+  const target = document.getElementById('sheet-won-list');
+  if (!target) return;
+  target.innerHTML = ganhos.slice(0, 8).map(item => {
+    const sub = [item.status, item.company, item.owner, item.value].filter(Boolean).join(' â€¢ ');
+    return `<div class="sheet-item ok">
+      <div><div class="sheet-item-title">🏆🚀 ${esc(item.title)}</div><div class="sheet-item-sub">${esc(sub)}</div></div>
+      <span class="sheet-pill">Ganho</span>
+    </div>`;
+  }).join('') || '<div class="sheet-empty"><strong>Sem ganhos nos status acompanhados</strong><span>Aba PROCESSOS GANHOS/REPROVADOS sem itens homologados, contrato ou POC aprovada.</span></div>';
+}
+
 function renderSheetDashboard() {
   const rows = sheetRows;
   if (!rows.length) {
@@ -622,6 +677,7 @@ function renderSheetDashboard() {
   const classified = rows.map(row => ({row, meta: classificarLinha(row, cols)}));
   const total = rows.length;
   const done = classified.filter(x => x.meta.done).length;
+  const ganhos = getGanhosPlanilha();
   const late = classified.filter(x => x.meta.late).length;
   const soon = classified.filter(x => x.meta.soon).length;
   const open = total - done;
@@ -629,7 +685,7 @@ function renderSheetDashboard() {
   document.getElementById('sheet-open').textContent = open;
   document.getElementById('sheet-late').textContent = late;
   document.getElementById('sheet-soon').textContent = soon;
-  document.getElementById('sheet-done').textContent = done;
+  document.getElementById('sheet-done').textContent = ganhos.length;
 
   const priority = classified
     .filter(x => !x.meta.done)
@@ -647,7 +703,7 @@ function renderSheetDashboard() {
   }).join('') || '<div class="sheet-empty"><strong>Nada pendente</strong><span>Sem itens em aberto na planilha.</span></div>';
 
   renderBars('sheet-status-bars', contarPor(rows, cols.status || cols.title), total);
-  renderBars('sheet-owner-bars', contarPor(rows, cols.owner || cols.status || cols.title), total);
+  renderGanhosTV(ganhos);
 }
 
 function contarPor(rows, col) {
@@ -679,7 +735,7 @@ function renderSheetError(message) {
   </div>`;
   document.getElementById('sheet-priority-list').innerHTML = html;
   document.getElementById('sheet-status-bars').innerHTML = html;
-  document.getElementById('sheet-owner-bars').innerHTML = html;
+  document.getElementById('sheet-won-list').innerHTML = html;
 }
 
 function filtrar(f, el) {

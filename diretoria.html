@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Diretoria | Painel de Licitações</title>
+<title>Diretoria | Painel de LicitaÃ§Ãµes</title>
 <style>
 :root {
   --navy: #244a70;
@@ -319,7 +319,7 @@ h1 {
     <div class="brand-row">
       <div class="brand">
         <div class="brand-kicker">VIVVER / CRESCER</div>
-        <h1>Visão da Diretoria</h1>
+        <h1>VisÃ£o da Diretoria</h1>
         <div class="updated" id="updated">Atualizando dados...</div>
       </div>
       <button class="refresh" id="refresh" aria-label="Atualizar painel">
@@ -328,7 +328,7 @@ h1 {
     </div>
     <div class="summary-card">
       <p class="summary-label">Leitura executiva</p>
-      <p class="summary-title" id="executive-summary">Consolidando licitações, riscos e oportunidades em aberto.</p>
+      <p class="summary-title" id="executive-summary">Consolidando licitaÃ§Ãµes, riscos e oportunidades em aberto.</p>
     </div>
   </header>
 
@@ -336,29 +336,29 @@ h1 {
     <article class="card kpi accent-teal">
       <div class="kpi-label">Processos no painel</div>
       <div class="kpi-value" id="kpi-processos">-</div>
-      <div class="kpi-foot" id="kpi-processos-foot">Licitações acompanhadas na TV</div>
+      <div class="kpi-foot" id="kpi-processos-foot">LicitaÃ§Ãµes acompanhadas na TV</div>
     </article>
     <article class="card kpi accent-orange">
       <div class="kpi-label">Prazos em 7 dias</div>
       <div class="kpi-value" id="kpi-proximos">-</div>
-      <div class="kpi-foot">Aberturas, impugnações e POCs próximas</div>
+      <div class="kpi-foot">Aberturas, impugnaÃ§Ãµes e POCs prÃ³ximas</div>
     </article>
     <article class="card kpi accent-green">
-      <div class="kpi-label">Vitórias / contratos</div>
+      <div class="kpi-label">VitÃ³rias / contratos</div>
       <div class="kpi-value" id="kpi-vitorias">-</div>
       <div class="kpi-foot">Itens vencidos, POC ou assinatura</div>
     </article>
     <article class="card kpi accent-red">
-      <div class="kpi-label">Riscos críticos</div>
+      <div class="kpi-label">Riscos crÃ­ticos</div>
       <div class="kpi-value" id="kpi-riscos">-</div>
-      <div class="kpi-foot">Recursos, impugnações, suspensos ou atraso</div>
+      <div class="kpi-foot">Recursos, impugnaÃ§Ãµes, suspensos ou atraso</div>
     </article>
   </section>
 
   <section class="section">
     <div class="section-head">
-      <h2 class="section-title">Radar de decisão</h2>
-      <span class="section-note">próximos movimentos</span>
+      <h2 class="section-title">Radar de decisÃ£o</h2>
+      <span class="section-note">prÃ³ximos movimentos</span>
     </div>
     <div class="card panel">
       <div class="risk-strip">
@@ -372,10 +372,20 @@ h1 {
   <section class="section">
     <div class="section-head">
       <h2 class="section-title">Prioridades</h2>
-      <span class="section-note">maior atenção</span>
+      <span class="section-note">maior atenÃ§Ã£o</span>
     </div>
     <div class="card panel">
       <div class="list" id="priority-list"><div class="empty">Carregando prioridades...</div></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2 class="section-title">Ganhos e contratos</h2>
+      <span class="section-note">PROCESSOS GANHOS/REPROVADOS</span>
+    </div>
+    <div class="card panel">
+      <div class="list" id="won-list"><div class="empty">Carregando ganhos...</div></div>
     </div>
   </section>
 
@@ -391,11 +401,11 @@ h1 {
     </div>
     <div>
       <div class="section-head">
-        <h2 class="section-title">Responsáveis</h2>
+        <h2 class="section-title">ResponsÃ¡veis</h2>
         <span class="section-note">carga atual</span>
       </div>
       <div class="card panel">
-        <div class="bar-list" id="owner-bars"><div class="empty">Carregando responsáveis...</div></div>
+        <div class="bar-list" id="owner-bars"><div class="empty">Carregando responsÃ¡veis...</div></div>
       </div>
     </div>
   </section>
@@ -410,15 +420,17 @@ h1 {
     </div>
   </section>
 
-  <div class="footer">Atualização automática a cada 60 segundos.</div>
+  <div class="footer">AtualizaÃ§Ã£o automÃ¡tica a cada 60 segundos.</div>
 </main>
 
 <script>
 const FIREBASE_URL = 'https://painel-licitacoes-59ef3-default-rtdb.firebaseio.com/painel-licitacoes/current.json';
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1EAAgIkYM_IS94SNU_fLT2ZgPVoKznu5THgwCp_RXbK4/gviz/tq?tqx=out:csv&gid=0';
+const WON_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1EAAgIkYM_IS94SNU_fLT2ZgPVoKznu5THgwCp_RXbK4/gviz/tq?tqx=out:csv&sheet=PROCESSOS%20GANHOS%2FREPROVADOS';
 const MS_DIA = 86400000;
 let processos = [];
 let planilha = [];
+let ganhosPlanilha = [];
 
 const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -487,6 +499,15 @@ function pickColumn(sample, terms) {
   return keys.find(k => terms.some(term => norm(k).includes(norm(term))));
 }
 
+function pickColumnPriority(sample, terms) {
+  const keys = Object.keys(sample || {});
+  for (const term of terms) {
+    const found = keys.find(k => norm(k).includes(norm(term)));
+    if (found) return found;
+  }
+  return '';
+}
+
 function parseDataBR(value) {
   const raw = String(value || '');
   const m = raw.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
@@ -532,18 +553,21 @@ function isWin(text) {
 }
 
 function isRisk(text) {
-  return /(recurso|suspens|sem retorno|atras|indefer|negad|impugnacao indeferida|impugnação indeferida)/i.test(text);
+  return /(recurso|suspens|sem retorno|atras|indefer|negad|impugnacao indeferida|impugnaÃ§Ã£o indeferida)/i.test(text);
 }
 
+function isStatusGanho(status) {
+  return ['homologado', 'contrato recebido', 'aguardando contrato', 'poc aprovada'].includes(norm(status));
+}
 function sheetMeta(row, cols) {
   const status = String(row[cols.status] || '');
   const date = parseDataBR(row[cols.impugnacao]) || parseDataBR(row[cols.abertura]);
   const days = diasAte(date);
   const text = Object.values(row).join(' ');
   return {
-    title: String(row[cols.municipio] || row[cols.title] || 'Sem identificação').trim(),
+    title: String(row[cols.municipio] || row[cols.title] || 'Sem identificaÃ§Ã£o').trim(),
     status,
-    owner: String(row[cols.owner] || 'Não definido').trim(),
+    owner: String(row[cols.owner] || 'NÃ£o definido').trim(),
     date,
     days,
     value: parseMoneyBR(row[cols.value]),
@@ -553,10 +577,31 @@ function sheetMeta(row, cols) {
   };
 }
 
+function ganhosMeta(rows) {
+  if (!rows.length) return [];
+  const sample = rows[0] || {};
+  const cols = {
+    status: pickColumn(sample, ['status','situacao','andamento']),
+    title: pickColumnPriority(sample, ['municipio','orgao','cliente','processo','pregao','dispensa','nome']) || Object.keys(sample)[0],
+    owner: pickColumn(sample, ['analista','responsavel','owner']),
+    company: pickColumn(sample, ['empresa']),
+    value: pickColumn(sample, ['valor estimado','valor'])
+  };
+  return rows
+    .filter(row => isStatusGanho(row[cols.status]))
+    .map(row => ({
+      title: String(row[cols.title] || 'Processo ganho').trim(),
+      status: String(row[cols.status] || 'Ganho').trim(),
+      owner: String(row[cols.owner] || '').trim(),
+      company: String(row[cols.company] || '').trim(),
+      value: parseMoneyBR(row[cols.value])
+    }));
+}
+
 function countBy(items, getter, limit = 6) {
   const counts = {};
   items.forEach(item => {
-    const key = String(getter(item) || 'Não informado').trim() || 'Não informado';
+    const key = String(getter(item) || 'NÃ£o informado').trim() || 'NÃ£o informado';
     counts[key] = (counts[key] || 0) + 1;
   });
   return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, limit);
@@ -600,6 +645,7 @@ function renderDashboard() {
     value: pickColumn(sample, ['valor estimado','valor'])
   };
   const sheet = planilha.map(row => ({row, meta: sheetMeta(row, cols)}));
+  const ganhos = ganhosMeta(ganhosPlanilha);
   const procText = processos.map(p => Object.values(p).join(' '));
   const totalValor = sheet.reduce((sum, item) => sum + item.meta.value, 0);
   const proximosSheet = sheet.filter(item => item.meta.soon).length;
@@ -609,7 +655,7 @@ function renderDashboard() {
     return d !== null && d >= 0 && d <= 7;
   }).length;
   const hojePainel = processos.filter(p => diasAte(parseDataBR(p.data)) === 0).length;
-  const vitorias = procText.filter(isWin).length;
+  const vitorias = ganhos.length;
   const riscosPainel = procText.filter(isRisk).length + processos.filter(p => ['atencao','suspenso'].includes(p.status)).length;
   const riscosTotal = riscosPainel + atrasosSheet;
 
@@ -622,9 +668,9 @@ function renderDashboard() {
   $('risk-atraso').textContent = atrasosSheet;
   $('risk-valor').textContent = fmtMoneyShort(totalValor);
 
-  const fraseRisco = riscosTotal ? `${riscosTotal} ponto(s) de atenção pedem acompanhamento próximo.` : 'Sem risco crítico identificado nos dados atuais.';
-  const fraseValor = totalValor ? `Carteira estimada em ${fmtMoneyShort(totalValor)} na planilha.` : 'Valores estimados ainda não consolidados.';
-  $('executive-summary').textContent = `${processos.length} processos na TV e ${planilha.length} oportunidades na planilha. ${fraseRisco} ${fraseValor}`;
+  const fraseRisco = riscosTotal ? `${riscosTotal} ponto(s) de atenÃ§Ã£o pedem acompanhamento prÃ³ximo.` : 'Sem risco crÃ­tico identificado nos dados atuais.';
+  const fraseValor = totalValor ? `Carteira estimada em ${fmtMoneyShort(totalValor)} na planilha.` : 'Valores estimados ainda nÃ£o consolidados.';
+  $('executive-summary').textContent = `${processos.length} processos na TV, ${planilha.length} oportunidades em monitoramento e ${ganhos.length} ganho(s) em contrato/homologação/POC. ${fraseRisco} ${fraseValor}`;
 
   const prioridadesSheet = sheet
     .filter(item => item.meta.soon || item.meta.late || item.meta.risk)
@@ -632,14 +678,22 @@ function renderDashboard() {
     .slice(0, 6)
     .map(item => ({
       title: item.meta.title,
-      badge: item.meta.late ? Math.abs(item.meta.days) + 'd atraso' : item.meta.days !== null ? item.meta.days + 'd' : 'atenção',
+      badge: item.meta.late ? Math.abs(item.meta.days) + 'd atraso' : item.meta.days !== null ? item.meta.days + 'd' : 'atenÃ§Ã£o',
       tone: item.meta.late || item.meta.risk ? 'danger' : 'warn',
-      sub: [item.meta.status, item.meta.owner, item.meta.value ? fmtMoneyShort(item.meta.value) : ''].filter(Boolean).join(' • ')
+      sub: [item.meta.status, item.meta.owner, item.meta.value ? fmtMoneyShort(item.meta.value) : ''].filter(Boolean).join(' â€¢ ')
     }));
-  renderItems('priority-list', prioridadesSheet, 'Sem prioridade crítica para os próximos dias.');
+  renderItems('priority-list', prioridadesSheet, 'Sem prioridade crÃ­tica para os prÃ³ximos dias.');
 
-  renderBars('status-bars', countBy(sheet, item => item.meta.status || 'Não informado'));
-  renderBars('owner-bars', countBy(sheet, item => item.meta.owner || 'Não definido'));
+  const ganhosCards = ganhos.slice(0, 8).map(item => ({
+    title: '🏆🚀 ' + item.title,
+    badge: item.status,
+    tone: 'success',
+    sub: [item.company, item.owner, item.value ? fmtMoneyShort(item.value) : ''].filter(Boolean).join(' â€¢ ')
+  }));
+  renderItems('won-list', ganhosCards, 'Sem itens nos status HOMOLOGADO, CONTRATO RECEBIDO, AGUARDANDO CONTRATO ou POC APROVADA.');
+
+  renderBars('status-bars', countBy(sheet, item => item.meta.status || 'NÃ£o informado'));
+  renderBars('owner-bars', countBy(sheet, item => item.meta.owner || 'NÃ£o definido'));
 
   const highlights = processos
     .slice()
@@ -649,10 +703,10 @@ function renderDashboard() {
       const text = Object.values(p).join(' ');
       const tone = p.status === 'ok' || isWin(text) ? 'success' : isRisk(text) ? 'danger' : 'warn';
       return {
-        title: p.titulo || 'Processo sem título',
+        title: p.titulo || 'Processo sem tÃ­tulo',
         badge: p.badge || statusLabel(p.status),
         tone,
-        sub: [p.sub, p.destaque, p.update].filter(Boolean).join(' • ')
+        sub: [p.sub, p.destaque, p.update].filter(Boolean).join(' â€¢ ')
       };
     });
   renderItems('tv-highlights', highlights, 'Sem destaques operacionais no painel da TV.');
@@ -660,10 +714,10 @@ function renderDashboard() {
 }
 
 function renderError(message) {
-  ['priority-list','status-bars','owner-bars','tv-highlights'].forEach(id => {
+  ['priority-list','won-list','status-bars','owner-bars','tv-highlights'].forEach(id => {
     $(id).innerHTML = `<div class="error">${esc(message)}</div>`;
   });
-  $('executive-summary').textContent = 'Não foi possível consolidar os dados agora.';
+  $('executive-summary').textContent = 'NÃ£o foi possÃ­vel consolidar os dados agora.';
   $('updated').textContent = 'Falha ao atualizar em ' + nowLabel();
 }
 
@@ -671,12 +725,13 @@ async function load() {
   $('refresh').disabled = true;
   $('updated').textContent = 'Atualizando dados...';
   try {
-    const [json, csv] = await Promise.all([fetchJson(FIREBASE_URL), fetchCsv(SHEET_CSV_URL)]);
+    const [json, csv, wonCsv] = await Promise.all([fetchJson(FIREBASE_URL), fetchCsv(SHEET_CSV_URL), fetchCsv(WON_SHEET_CSV_URL)]);
     processos = Array.isArray(json?.processos) ? json.processos : Array.isArray(json) ? json : [];
     planilha = csvToObjects(csv);
+    ganhosPlanilha = csvToObjects(wonCsv);
     renderDashboard();
   } catch (err) {
-    renderError('Não foi possível carregar os dados. Verifique a conexão ou permissões da planilha.');
+    renderError('NÃ£o foi possÃ­vel carregar os dados. Verifique a conexÃ£o ou permissÃµes da planilha.');
   } finally {
     $('refresh').disabled = false;
   }
