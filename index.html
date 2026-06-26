@@ -599,7 +599,7 @@ function renderSheetDashboard() {
     status: pickColumn(sample, ['status','situacao','andamento','etapa','fase']),
     date: pickColumn(sample, ['prazo','data','previsao','vencimento','retorno','limite']),
     owner: pickColumn(sample, ['responsavel','responsável','owner','analista','equipe','setor','frente']),
-    detail: pickColumn(sample, ['observacao','observação','descricao','descrição','comentario','comentário','detalhe','acao','ação'])
+    detail: pickColumn(sample, ['observacao','observação','descricao','descrição','comentario','comentário','detalhe'])
   };
   const classified = rows.map(row => ({row, meta: classificarLinha(row, cols)}));
   const total = rows.length;
