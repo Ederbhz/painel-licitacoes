@@ -893,6 +893,11 @@ function statusPocCanonico(status) {
   return String(status || 'Não informado').trim() || 'Não informado';
 }
 
+function reconheceStatusPoc(status) {
+  const canonical = statusPocCanonico(status);
+  return POC_STATUS_ORDER.includes(canonical);
+}
+
 function isStatusConforme(status) {
   const canonical = statusPocCanonico(status);
   return canonical === 'APROVADO' || canonical === 'Aplicado';
@@ -906,7 +911,7 @@ function statusCriticoPoc(status) {
 function contarStatusPoc(mapped) {
   const counts = {};
   mapped.forEach(item => counts[item.canonical] = (counts[item.canonical] || 0) + 1);
-  const ordered = POC_STATUS_ORDER.map(status => [status, counts[status] || 0]).filter(([, value]) => value > 0);
+  const ordered = POC_STATUS_ORDER.map(status => [status, counts[status] || 0]);
   const extras = Object.entries(counts).filter(([status]) => !POC_STATUS_ORDER.includes(status)).sort((a,b) => b[1] - a[1]);
   return ordered.concat(extras);
 }
@@ -917,6 +922,22 @@ function colunasPoc(sample) {
     item: pickColumn(sample, ['item','requisito','funcionalidade','modulo','módulo','descricao','descrição','demanda','criterio','critério']) || Object.keys(sample || {})[0],
     detail: pickColumn(sample, ['observacao','observação','comentario','comentário','detalhe','justificativa'])
   };
+}
+
+function detectarColunaStatusPoc(rows, preferred) {
+  const keys = Object.keys(rows[0] || {});
+  const scores = keys.map(key => {
+    const score = rows.slice(0, 80).reduce((acc, row) => acc + (reconheceStatusPoc(row[key]) ? 1 : 0), 0);
+    return {key, score};
+  }).sort((a,b) => b.score - a.score);
+  if (scores[0] && scores[0].score > 0) return scores[0].key;
+  return preferred || '';
+}
+
+function detectarColunaItemPoc(rows, preferred, statusCol) {
+  if (preferred && preferred !== statusCol) return preferred;
+  const keys = Object.keys(rows[0] || {}).filter(k => k !== statusCol);
+  return keys.find(key => rows.some(row => String(row[key] || '').trim())) || keys[0] || '';
 }
 
 async function carregarPoc(silencioso = false) {
@@ -942,6 +963,8 @@ function renderPocDashboard() {
   }
   const sample = pocRows[0];
   const cols = colunasPoc(sample);
+  cols.status = detectarColunaStatusPoc(pocRows, cols.status);
+  cols.item = detectarColunaItemPoc(pocRows, cols.item, cols.status);
   if (!cols.status) {
     renderPocError('Não encontrei uma coluna de status, situação, resultado ou conformidade na planilha da POC.');
     return;
@@ -959,8 +982,9 @@ function renderPocDashboard() {
       critico: statusCriticoPoc(status)
     };
   });
-  const total = mapped.length;
-  const conformes = mapped.filter(x => x.conforme).length;
+  const avaliados = mapped.filter(x => x.canonical !== 'Não informado');
+  const total = avaliados.length;
+  const conformes = avaliados.filter(x => x.conforme).length;
   const risco = total - conformes;
   const percent = total ? Math.round((conformes / total) * 100) : 0;
   document.getElementById('poc-total').textContent = total;
@@ -968,16 +992,16 @@ function renderPocDashboard() {
   document.getElementById('poc-risk').textContent = risco;
   document.getElementById('poc-percent').textContent = percent + '%';
   document.getElementById('poc-city-kpi').textContent = pocConfig.municipality || 'Não informado';
-  renderBars('poc-status-bars', contarStatusPoc(mapped), total);
+  renderBars('poc-status-bars', contarStatusPoc(avaliados), total);
 
-  const attention = mapped.filter(x => !x.conforme || x.critico).slice(0, 8);
+  const attention = avaliados.filter(x => !x.conforme || x.critico).slice(0, 8);
   document.getElementById('poc-attention-list').innerHTML = attention.map(item => `
     <div class="sheet-item ${item.critico ? 'danger' : 'warn'}">
       <div><div class="sheet-item-title">${esc(item.item)}</div><div class="sheet-item-sub">${esc([item.canonical, item.detail].filter(Boolean).join(' • '))}</div></div>
       <span class="sheet-pill">Atenção</span>
     </div>`).join('') || '<div class="sheet-empty"><strong>Nenhum item crítico</strong><span>Todos os itens avaliados estão conformes.</span></div>';
 
-  document.getElementById('poc-ok-list').innerHTML = mapped.filter(x => x.conforme).slice(0, 8).map(item => `
+  document.getElementById('poc-ok-list').innerHTML = avaliados.filter(x => x.conforme).slice(0, 8).map(item => `
     <div class="sheet-item ok">
       <div><div class="sheet-item-title">${esc(item.item)}</div><div class="sheet-item-sub">${esc(item.canonical)}</div></div>
       <span class="sheet-pill">Conforme</span>
