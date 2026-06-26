@@ -103,6 +103,34 @@
   .card-update { font-size: 11px; color: var(--text2); line-height: 1.55; border-top: 0.5px solid var(--border); padding-top: 7px; }
   .highlight { background: rgba(245,158,11,0.1); color: var(--amber-text); border: 0.5px solid rgba(245,158,11,0.25); font-size: 11px; font-weight: 500; padding: 4px 9px; border-radius: var(--radius); display: inline-flex; align-items: center; gap: 5px; margin-top: 2px; }
 
+  .sheet-dashboard { display: none; }
+  .sheet-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+  .sheet-kpi { background: rgba(19,43,66,0.92); border: 0.5px solid rgba(255,255,255,0.13); border-radius: var(--radius); padding: 10px 14px; }
+  .sheet-kpi-label { color: var(--text2); font-size: 12px; margin-bottom: 2px; }
+  .sheet-kpi-value { font-size: 31px; line-height: 1; font-weight: 700; color: var(--text); }
+  .sheet-kpi-value.warn { color: var(--amber-text); }
+  .sheet-kpi-value.danger { color: var(--red-text); }
+  .sheet-kpi-value.ok { color: var(--green-text); }
+  .sheet-panels { display: grid; grid-template-columns: 1.2fr 0.9fr 0.9fr; gap: 10px; min-height: 0; flex: 1; }
+  .sheet-panel { background: rgba(19,43,66,0.94); border: 0.5px solid rgba(255,255,255,0.13); border-radius: var(--radius-lg); padding: 12px 14px; min-height: 0; overflow: hidden; }
+  .sheet-panel h3 { font-size: 14px; line-height: 1.2; margin-bottom: 9px; color: var(--text); font-weight: 700; }
+  .sheet-list { display: flex; flex-direction: column; gap: 7px; min-height: 0; }
+  .sheet-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 7px 9px; border-radius: 8px; background: rgba(255,255,255,0.035); border-left: 4px solid var(--blue); }
+  .sheet-item.danger { border-left-color: var(--red); }
+  .sheet-item.warn { border-left-color: var(--amber); }
+  .sheet-item.ok { border-left-color: var(--green); }
+  .sheet-item-title { font-size: 12px; font-weight: 650; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sheet-item-sub { font-size: 10.5px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .sheet-pill { font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 999px; color: var(--text); background: rgba(255,255,255,0.08); white-space: nowrap; }
+  .bar-row { display: grid; grid-template-columns: minmax(0, 1fr) 42px; gap: 8px; align-items: center; margin-bottom: 7px; }
+  .bar-label { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-track { height: 9px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; margin-top: 3px; }
+  .bar-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--vivver-teal), var(--crescer-blue)); }
+  .bar-value { font-size: 12px; text-align: right; color: var(--text); font-weight: 700; }
+  .sheet-empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--text2); gap: 8px; padding: 20px; }
+  .sheet-empty strong { color: var(--text); font-size: 18px; }
+  .screen-indicator { position: fixed; right: 18px; bottom: 14px; z-index: 120; font-size: 11px; color: #c8d0e6; background: rgba(19,43,66,0.86); border: 0.5px solid rgba(255,255,255,0.14); border-radius: 999px; padding: 5px 10px; display: none; }
+
   .empty { grid-column: 1 / -1; text-align: center; padding: 48px 20px; color: var(--text3); font-size: 13px; }
   .empty-icon { font-size: 34px; margin-bottom: 10px; opacity: 0.35; display: block; }
 
@@ -149,6 +177,15 @@
   body.tv-mode .card-update { font-size: 10.5px; color: #c0c8df; line-height: 1.28; border-top: 0.5px solid var(--border); padding-top: 5px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   body.tv-mode .highlight { width: 100%; justify-content: center; font-size: 11px; padding: 4px 8px; margin-top: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   body.tv-mode .footer { display: none; }
+  body.tv-mode .screen-indicator { display: block; }
+  body.tv-mode .sheet-dashboard { flex: 1; min-height: 0; display: none; flex-direction: column; gap: 10px; }
+  body.tv-mode.show-sheet .sync-panel,
+  body.tv-mode.show-sheet .stats-row,
+  body.tv-mode.show-sheet .tabs,
+  body.tv-mode.show-sheet .legend,
+  body.tv-mode.show-sheet .grid { display: none; }
+  body.tv-mode.show-sheet .sheet-dashboard { display: flex; }
+  body.tv-mode.show-sheet .header-title::after { content: "Monitoramento"; font-size: 12px; font-weight: 700; color: var(--amber-text); border: 0.5px solid rgba(255,107,0,0.32); background: rgba(255,107,0,0.11); border-radius: 999px; padding: 4px 10px; }
 
   @media (max-width: 700px) { .stats-row { grid-template-columns: repeat(3, 1fr); } .header-right { display: none; } }
 </style>
@@ -235,8 +272,34 @@
     </div>
   </div>
 
+  <section class="sheet-dashboard" id="sheet-dashboard" aria-label="Dashboard de monitoramento">
+    <div class="sheet-kpis">
+      <div class="sheet-kpi"><div class="sheet-kpi-label">Total monitorado</div><div class="sheet-kpi-value" id="sheet-total">—</div></div>
+      <div class="sheet-kpi"><div class="sheet-kpi-label">Em andamento</div><div class="sheet-kpi-value" id="sheet-open">—</div></div>
+      <div class="sheet-kpi"><div class="sheet-kpi-label">Vencidos</div><div class="sheet-kpi-value danger" id="sheet-late">—</div></div>
+      <div class="sheet-kpi"><div class="sheet-kpi-label">Próx. 7 dias</div><div class="sheet-kpi-value warn" id="sheet-soon">—</div></div>
+      <div class="sheet-kpi"><div class="sheet-kpi-label">Concluídos</div><div class="sheet-kpi-value ok" id="sheet-done">—</div></div>
+    </div>
+    <div class="sheet-panels">
+      <div class="sheet-panel">
+        <h3>Prioridades e prazos</h3>
+        <div class="sheet-list" id="sheet-priority-list"></div>
+      </div>
+      <div class="sheet-panel">
+        <h3>Distribuição por status</h3>
+        <div id="sheet-status-bars"></div>
+      </div>
+      <div class="sheet-panel">
+        <h3>Responsáveis / frentes</h3>
+        <div id="sheet-owner-bars"></div>
+      </div>
+    </div>
+  </section>
+
   <div class="footer">Última atualização: <span id="last-update">—</span> &nbsp;·&nbsp; VIVVER / CRESCER Tecnologia</div>
 </div>
+
+<div class="screen-indicator" id="screen-indicator">Licitações • troca em 2 min</div>
 
 <button class="tv-btn" onclick="ativarModoTV()" title="Modo TV (F2)">
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>
@@ -251,6 +314,12 @@ let ultimaVersaoRemota = '';
 const SYNC_STORAGE_KEY = 'painel_licitacoes_sync_endpoint';
 const SYNC_INTERVAL_MS = 5000;
 const DEFAULT_SYNC_ENDPOINT = 'https://painel-licitacoes-59ef3-default-rtdb.firebaseio.com/painel-licitacoes/current.json';
+const DASHBOARD_ROTATE_MS = 120000;
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1EAAgIkYM_IS94SNU_fLT2ZgPVoKznu5THgwCp_RXbK4/gviz/tq?tqx=out:csv&gid=0';
+
+let sheetRows = [];
+let sheetLoadedAt = '';
+let activeTvScreen = 'licitacoes';
 
 function updateClock() {
   const n = new Date();
@@ -406,6 +475,24 @@ function iniciarPainel() {
     setSyncStatus('warn', 'não configurada');
   }
   setInterval(() => carregarRemoto(true), SYNC_INTERVAL_MS);
+  carregarPlanilha(true);
+  setInterval(() => carregarPlanilha(true), 60000);
+  iniciarRotacaoTV();
+}
+
+function iniciarRotacaoTV() {
+  if (!document.body.classList.contains('tv-mode')) return;
+  mostrarTelaTV('licitacoes');
+  setInterval(() => {
+    mostrarTelaTV(activeTvScreen === 'licitacoes' ? 'planilha' : 'licitacoes');
+  }, DASHBOARD_ROTATE_MS);
+}
+
+function mostrarTelaTV(tela) {
+  activeTvScreen = tela;
+  document.body.classList.toggle('show-sheet', tela === 'planilha');
+  const label = tela === 'planilha' ? 'Monitoramento • troca em 2 min' : 'Licitações • troca em 2 min';
+  document.getElementById('screen-indicator').textContent = label;
 }
 
 function renderStats() {
@@ -416,6 +503,166 @@ function renderStats() {
   document.getElementById('s-ok').textContent = c.ok;
   document.getElementById('s-atencao').textContent = c.atencao;
   document.getElementById('s-suspenso').textContent = c.suspenso;
+}
+
+async function carregarPlanilha(silencioso = false) {
+  try {
+    const sep = SHEET_CSV_URL.includes('?') ? '&' : '?';
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10000);
+    const res = await fetch(SHEET_CSV_URL + sep + 'cache=' + Date.now(), {cache: 'no-store', signal: controller.signal});
+    clearTimeout(timer);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const csv = await res.text();
+    const linhas = csvToObjects(csv).filter(row => Object.values(row).some(v => String(v || '').trim()));
+    sheetRows = linhas;
+    sheetLoadedAt = new Date().toISOString();
+    renderSheetDashboard();
+  } catch(e) {
+    if (!silencioso) console.warn(e);
+    renderSheetError(e.message);
+  }
+}
+
+function csvToObjects(csv) {
+  const rows = parseCSV(csv);
+  if (!rows.length) return [];
+  const headers = rows[0].map((h, i) => String(h || ('Coluna ' + (i + 1))).trim());
+  return rows.slice(1).map(r => Object.fromEntries(headers.map((h, i) => [h, r[i] || ''])));
+}
+
+function parseCSV(text) {
+  const rows = [];
+  let row = [], value = '', quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i], next = text[i + 1];
+    if (quoted) {
+      if (ch === '"' && next === '"') { value += '"'; i++; }
+      else if (ch === '"') quoted = false;
+      else value += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === ',') { row.push(value); value = ''; }
+    else if (ch === '\n') { row.push(value); rows.push(row); row = []; value = ''; }
+    else if (ch !== '\r') value += ch;
+  }
+  row.push(value);
+  rows.push(row);
+  return rows.filter(r => r.some(c => String(c).trim()));
+}
+
+function norm(s) {
+  return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
+
+function pickColumn(row, terms) {
+  const keys = Object.keys(row || {});
+  return keys.find(k => terms.some(t => norm(k).includes(t))) || '';
+}
+
+function parseDataBR(value) {
+  const s = String(value || '').trim();
+  const m = s.match(/(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/);
+  if (!m) return null;
+  const y = Number(m[3].length === 2 ? '20' + m[3] : m[3]);
+  const d = new Date(y, Number(m[2]) - 1, Number(m[1]));
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function diasAte(date) {
+  if (!date) return null;
+  const hoje = new Date();
+  hoje.setHours(0,0,0,0);
+  const alvo = new Date(date);
+  alvo.setHours(0,0,0,0);
+  return Math.round((alvo - hoje) / 86400000);
+}
+
+function classificarLinha(row, cols) {
+  const status = String(row[cols.status] || '').toLowerCase();
+  const texto = Object.values(row).join(' ').toLowerCase();
+  const done = /(conclu|finaliz|entreg|feito|ok|resolvid|encerrad)/i.test(status + ' ' + texto);
+  const date = parseDataBR(row[cols.date]);
+  const days = diasAte(date);
+  const late = !done && days !== null && days < 0;
+  const soon = !done && days !== null && days >= 0 && days <= 7;
+  return {done, date, days, late, soon};
+}
+
+function renderSheetDashboard() {
+  const rows = sheetRows;
+  if (!rows.length) {
+    renderSheetError('Planilha sem linhas publicadas.');
+    return;
+  }
+  const sample = rows[0];
+  const cols = {
+    title: pickColumn(sample, ['titulo','cliente','orgao','órgao','municipio','processo','nome','demanda','item']) || Object.keys(sample)[0],
+    status: pickColumn(sample, ['status','situacao','andamento','etapa','fase']),
+    date: pickColumn(sample, ['prazo','data','previsao','vencimento','retorno','limite']),
+    owner: pickColumn(sample, ['responsavel','responsável','owner','analista','equipe','setor','frente']),
+    detail: pickColumn(sample, ['observacao','observação','descricao','descrição','comentario','comentário','detalhe','acao','ação'])
+  };
+  const classified = rows.map(row => ({row, meta: classificarLinha(row, cols)}));
+  const total = rows.length;
+  const done = classified.filter(x => x.meta.done).length;
+  const late = classified.filter(x => x.meta.late).length;
+  const soon = classified.filter(x => x.meta.soon).length;
+  const open = total - done;
+  document.getElementById('sheet-total').textContent = total;
+  document.getElementById('sheet-open').textContent = open;
+  document.getElementById('sheet-late').textContent = late;
+  document.getElementById('sheet-soon').textContent = soon;
+  document.getElementById('sheet-done').textContent = done;
+
+  const priority = classified
+    .filter(x => !x.meta.done)
+    .sort((a,b) => (a.meta.days ?? 9999) - (b.meta.days ?? 9999))
+    .slice(0, 8);
+  document.getElementById('sheet-priority-list').innerHTML = priority.map(({row, meta}) => {
+    const risk = meta.late ? 'danger' : meta.soon ? 'warn' : '';
+    const dateLabel = meta.date ? row[cols.date] : 'Sem prazo';
+    const prazo = meta.late ? Math.abs(meta.days) + 'd atraso' : meta.soon ? meta.days + 'd' : dateLabel;
+    const sub = [row[cols.status], row[cols.owner], row[cols.detail]].filter(Boolean).join(' • ');
+    return `<div class="sheet-item ${risk}">
+      <div><div class="sheet-item-title">${esc(row[cols.title] || 'Sem título')}</div><div class="sheet-item-sub">${esc(sub || dateLabel)}</div></div>
+      <span class="sheet-pill">${esc(prazo)}</span>
+    </div>`;
+  }).join('') || '<div class="sheet-empty"><strong>Nada pendente</strong><span>Sem itens em aberto na planilha.</span></div>';
+
+  renderBars('sheet-status-bars', contarPor(rows, cols.status || cols.title), total);
+  renderBars('sheet-owner-bars', contarPor(rows, cols.owner || cols.status || cols.title), total);
+}
+
+function contarPor(rows, col) {
+  const counts = {};
+  rows.forEach(row => {
+    const key = String(row[col] || 'Não informado').trim() || 'Não informado';
+    counts[key] = (counts[key] || 0) + 1;
+  });
+  return Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 8);
+}
+
+function renderBars(id, entries, total) {
+  const max = Math.max(1, ...entries.map(x => x[1]));
+  document.getElementById(id).innerHTML = entries.map(([label, value]) => {
+    const pct = Math.max(4, Math.round((value / max) * 100));
+    return `<div class="bar-row">
+      <div><div class="bar-label">${esc(label)}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div></div>
+      <div class="bar-value">${value}</div>
+    </div>`;
+  }).join('') || '<div class="sheet-empty"><strong>Sem dados</strong></div>';
+}
+
+function renderSheetError(message) {
+  ['sheet-total','sheet-open','sheet-late','sheet-soon','sheet-done'].forEach(id => document.getElementById(id).textContent = '—');
+  const html = `<div class="sheet-empty">
+    <strong>Planilha não disponível</strong>
+    <span>Libere a planilha como “qualquer pessoa com o link pode visualizar” ou publique na Web.</span>
+    <span>${esc(message || '')}</span>
+  </div>`;
+  document.getElementById('sheet-priority-list').innerHTML = html;
+  document.getElementById('sheet-status-bars').innerHTML = html;
+  document.getElementById('sheet-owner-bars').innerHTML = html;
 }
 
 function filtrar(f, el) {
