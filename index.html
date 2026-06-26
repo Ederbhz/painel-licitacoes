@@ -41,6 +41,10 @@
   textarea { width: 100%; min-height: 90px; max-height: 180px; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 10px 12px; color: var(--text); font-family: inherit; font-size: 12px; resize: vertical; outline: none; line-height: 1.5; transition: border-color 0.15s; }
   textarea:focus { border-color: rgba(99,102,241,0.5); }
   textarea::placeholder { color: var(--text3); }
+  .poc-config { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(180px, 0.7fr); gap: 10px; margin-top: 10px; }
+  .poc-field label { display: block; font-size: 11px; color: var(--text2); margin-bottom: 5px; }
+  .poc-field input { width: 100%; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 9px 11px; color: var(--text); font-size: 12px; outline: none; }
+  .poc-field input:focus { border-color: rgba(50,163,160,0.55); }
   .btn-row { display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: wrap; }
   .btn-primary { background: var(--accent); border: none; border-radius: var(--radius); padding: 8px 16px; font-size: 13px; font-weight: 500; color: #fff; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: opacity 0.15s, transform 0.1s; }
   .btn-primary:hover { opacity: 0.88; }
@@ -104,6 +108,7 @@
   .highlight { background: rgba(245,158,11,0.1); color: var(--amber-text); border: 0.5px solid rgba(245,158,11,0.25); font-size: 11px; font-weight: 500; padding: 4px 9px; border-radius: var(--radius); display: inline-flex; align-items: center; gap: 5px; margin-top: 2px; }
 
   .sheet-dashboard { display: none; }
+  .poc-dashboard { display: none; }
   .sheet-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
   .sheet-kpi { background: rgba(19,43,66,0.92); border: 0.5px solid rgba(255,255,255,0.13); border-radius: var(--radius); padding: 10px 14px; }
   .sheet-kpi-label { color: var(--text2); font-size: 12px; margin-bottom: 2px; }
@@ -179,15 +184,23 @@
   body.tv-mode .footer { display: none; }
   body.tv-mode .screen-indicator { display: block; }
   body.tv-mode .sheet-dashboard { flex: 1; min-height: 0; display: none; flex-direction: column; gap: 10px; }
+  body.tv-mode .poc-dashboard { flex: 1; min-height: 0; display: none; flex-direction: column; gap: 10px; }
   body.tv-mode.show-sheet .sync-panel,
   body.tv-mode.show-sheet .stats-row,
   body.tv-mode.show-sheet .tabs,
   body.tv-mode.show-sheet .legend,
-  body.tv-mode.show-sheet .grid { display: none; }
+  body.tv-mode.show-sheet .grid,
+  body.tv-mode.show-poc .sync-panel,
+  body.tv-mode.show-poc .stats-row,
+  body.tv-mode.show-poc .tabs,
+  body.tv-mode.show-poc .legend,
+  body.tv-mode.show-poc .grid { display: none; }
   body.tv-mode.show-sheet .sheet-dashboard { display: flex; }
+  body.tv-mode.show-poc .poc-dashboard { display: flex; }
   body.tv-mode.show-sheet .header-title::after { content: "Monitoramento"; font-size: 12px; font-weight: 700; color: var(--amber-text); border: 0.5px solid rgba(255,107,0,0.32); background: rgba(255,107,0,0.11); border-radius: 999px; padding: 4px 10px; }
+  body.tv-mode.show-poc .header-title::after { content: "Análise Sistêmica POC"; font-size: 12px; font-weight: 700; color: #8ff3ea; border: 0.5px solid rgba(50,163,160,0.35); background: rgba(50,163,160,0.12); border-radius: 999px; padding: 4px 10px; }
 
-  @media (max-width: 700px) { .stats-row { grid-template-columns: repeat(3, 1fr); } .header-right { display: none; } }
+  @media (max-width: 700px) { .stats-row { grid-template-columns: repeat(3, 1fr); } .header-right { display: none; } .poc-config { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -225,6 +238,16 @@
   <div class="input-panel" id="input-panel">
     <div class="input-label">📋 Cole o JSON gerado pelo Claude (no chat), pré-visualize ou publique para a TV</div>
     <textarea id="json-input" placeholder='Cole aqui o JSON gerado pelo Claude. Exemplo:&#10;[&#10;  {"titulo":"Paraíba do Sul / RJ","sub":"POC agendada","status":"alerta","badge":"POC 03/07","data":"03/07/2026 14:00","update":"Nova POC acordada...","destaque":"Preparar material"},&#10;  ...&#10;]'></textarea>
+    <div class="poc-config" aria-label="Configuração da análise sistêmica da POC">
+      <div class="poc-field">
+        <label for="poc-sheet-url">Planilha da POC</label>
+        <input id="poc-sheet-url" type="url" placeholder="Cole o link da planilha da POC deste edital">
+      </div>
+      <div class="poc-field">
+        <label for="poc-date">Agendamento da POC</label>
+        <input id="poc-date" type="text" placeholder="Ex.: 03/07 14h ou A agendar">
+      </div>
+    </div>
     <div class="btn-row">
       <button class="btn-primary" onclick="carregarJSON()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
@@ -300,6 +323,34 @@
     </div>
   </section>
 
+  <section class="poc-dashboard" id="poc-dashboard" aria-label="Dashboard de análise sistêmica da POC">
+    <div class="sheet-kpis">
+      <div class="sheet-kpi"><div class="sheet-kpi-label">Itens avaliados</div><div class="sheet-kpi-value" id="poc-total">—</div></div>
+      <div class="sheet-kpi"><div class="sheet-kpi-label">Conformes</div><div class="sheet-kpi-value ok" id="poc-ok">—</div></div>
+      <div class="sheet-kpi"><div class="sheet-kpi-label">Pendentes / não conformes</div><div class="sheet-kpi-value danger" id="poc-risk">—</div></div>
+      <div class="sheet-kpi"><div class="sheet-kpi-label">% aderência</div><div class="sheet-kpi-value warn" id="poc-percent">—</div></div>
+      <div class="sheet-kpi"><div class="sheet-kpi-label">Agendamento</div><div class="sheet-kpi-value" id="poc-date-kpi">—</div></div>
+    </div>
+    <div class="sheet-panels">
+      <div class="sheet-panel">
+        <h3>Status dos itens</h3>
+        <div id="poc-status-bars"></div>
+      </div>
+      <div class="sheet-panel">
+        <h3>Itens de atenção</h3>
+        <div class="sheet-list" id="poc-attention-list"></div>
+      </div>
+      <div class="sheet-panel">
+        <h3>Conformes</h3>
+        <div class="sheet-list" id="poc-ok-list"></div>
+      </div>
+      <div class="sheet-panel">
+        <h3>Resumo da POC</h3>
+        <div class="sheet-list" id="poc-summary-list"></div>
+      </div>
+    </div>
+  </section>
+
   <div class="footer">Última atualização: <span id="last-update">—</span> &nbsp;·&nbsp; VIVVER / CRESCER Tecnologia</div>
 </div>
 
@@ -316,6 +367,7 @@ let filtroAtivo = 'todos';
 let ultimaVersaoRemota = '';
 
 const SYNC_STORAGE_KEY = 'painel_licitacoes_sync_endpoint';
+const POC_CONFIG_STORAGE_KEY = 'painel_licitacoes_poc_config';
 const SYNC_INTERVAL_MS = 5000;
 const DEFAULT_SYNC_ENDPOINT = 'https://painel-licitacoes-59ef3-default-rtdb.firebaseio.com/painel-licitacoes/current.json';
 const DASHBOARD_ROTATE_MS = 120000;
@@ -324,6 +376,8 @@ const WON_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1EAAgIkYM_IS94
 
 let sheetRows = [];
 let wonRows = [];
+let pocRows = [];
+let pocConfig = {};
 let sheetLoadedAt = '';
 let activeTvScreen = 'licitacoes';
 let tvNextSwitchAt = 0;
@@ -379,6 +433,26 @@ function aplicarProcessos(lista, origem, updatedAt) {
   document.getElementById('last-update').textContent = hora + ' — ' + processos.length + ' processo(s)' + (origem ? ' — ' + origem : '');
 }
 
+function getPocConfigFromInputs() {
+  return {
+    sheetUrl: (document.getElementById('poc-sheet-url')?.value || '').trim(),
+    schedule: (document.getElementById('poc-date')?.value || '').trim()
+  };
+}
+
+function aplicarPocConfig(config = {}) {
+  pocConfig = {
+    sheetUrl: (config.sheetUrl || '').trim(),
+    schedule: (config.schedule || '').trim()
+  };
+  const urlInput = document.getElementById('poc-sheet-url');
+  const dateInput = document.getElementById('poc-date');
+  if (urlInput) urlInput.value = pocConfig.sheetUrl || '';
+  if (dateInput) dateInput.value = pocConfig.schedule || '';
+  localStorage.setItem(POC_CONFIG_STORAGE_KEY, JSON.stringify(pocConfig));
+  carregarPoc(true);
+}
+
 function carregarJSON() {
   const parsed = parseJSONInput();
   if (!parsed) return;
@@ -398,7 +472,8 @@ async function publicarJSON() {
   }
   const payload = {
     updatedAt: new Date().toISOString(),
-    processos: parsed
+    processos: parsed,
+    pocConfig: getPocConfigFromInputs()
   };
   try {
     const res = await fetch(endpoint, {
@@ -408,6 +483,7 @@ async function publicarJSON() {
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     ultimaVersaoRemota = payload.updatedAt;
+    aplicarPocConfig(payload.pocConfig);
     document.getElementById('status-area').innerHTML = '<span class="status-ok">✓ Publicado para a TV (' + parsed.length + ' processo(s))</span>';
     setSyncStatus('ok', 'publicado às ' + new Date(payload.updatedAt).toLocaleTimeString('pt-BR'));
   } catch(e) {
@@ -438,6 +514,7 @@ async function carregarRemoto(silencioso = false) {
       return;
     }
     ultimaVersaoRemota = updatedAt || String(Date.now());
+    if (data.pocConfig) aplicarPocConfig(data.pocConfig);
     aplicarProcessos(lista, 'sincronizado', updatedAt);
     setSyncStatus('ok', 'atualizado às ' + new Date().toLocaleTimeString('pt-BR'));
   } catch(e) {
@@ -482,9 +559,15 @@ function iniciarPainel() {
   } else {
     setSyncStatus('warn', 'não configurada');
   }
+  try {
+    aplicarPocConfig(JSON.parse(localStorage.getItem(POC_CONFIG_STORAGE_KEY) || '{}'));
+  } catch(e) {
+    aplicarPocConfig({});
+  }
   setInterval(() => carregarRemoto(true), SYNC_INTERVAL_MS);
   carregarPlanilha(true);
   setInterval(() => carregarPlanilha(true), 60000);
+  setInterval(() => carregarPoc(true), 60000);
   iniciarRotacaoTV();
 }
 
@@ -494,7 +577,9 @@ function iniciarRotacaoTV() {
   if (tvCountdownTimer) clearInterval(tvCountdownTimer);
   tvCountdownTimer = setInterval(atualizarContadorTV, 1000);
   setInterval(() => {
-    mostrarTelaTV(activeTvScreen === 'licitacoes' ? 'planilha' : 'licitacoes');
+    const telas = ['licitacoes', 'planilha', 'poc'];
+    const atual = Math.max(0, telas.indexOf(activeTvScreen));
+    mostrarTelaTV(telas[(atual + 1) % telas.length]);
   }, DASHBOARD_ROTATE_MS);
 }
 
@@ -502,6 +587,7 @@ function mostrarTelaTV(tela) {
   activeTvScreen = tela;
   tvNextSwitchAt = Date.now() + DASHBOARD_ROTATE_MS;
   document.body.classList.toggle('show-sheet', tela === 'planilha');
+  document.body.classList.toggle('show-poc', tela === 'poc');
   atualizarContadorTV();
 }
 
@@ -515,7 +601,7 @@ function formatarContador(ms) {
 function atualizarContadorTV() {
   const el = document.getElementById('screen-indicator');
   if (!el || !document.body.classList.contains('tv-mode')) return;
-  const label = activeTvScreen === 'planilha' ? 'Monitoramento' : 'Licitações';
+  const label = activeTvScreen === 'planilha' ? 'Monitoramento' : activeTvScreen === 'poc' ? 'Análise POC' : 'Licitações';
   el.textContent = `${label} • próxima troca em ${formatarContador(tvNextSwitchAt - Date.now())}`;
 }
 
@@ -764,6 +850,113 @@ function renderBars(id, entries, total) {
       <div class="bar-value">${value}</div>
     </div>`;
   }).join('') || '<div class="sheet-empty"><strong>Sem dados</strong></div>';
+}
+
+function pocCsvUrl(sheetUrl) {
+  const url = String(sheetUrl || '').trim();
+  if (!url) return '';
+  if (/tqx=out:csv|output=csv|format=csv/i.test(url)) return url;
+  const id = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/)?.[1];
+  if (!id) return url;
+  const gid = url.match(/[?&#]gid=(\d+)/)?.[1] || '0';
+  return `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&gid=${gid}`;
+}
+
+function isStatusConforme(status) {
+  const s = norm(status);
+  if (!s) return false;
+  if (/nao|não|pendente|parcial|reprov|inconform|inapto|fora|ajust|desenvolv|custom/.test(s)) return false;
+  return /conforme|atende|aderente|ok|sim|aprov|cumpre|disponivel|disponível/.test(s);
+}
+
+function statusCriticoPoc(status) {
+  const s = norm(status);
+  return /nao|não|pendente|reprov|inconform|inapto|fora|ajust|desenvolv|custom|parcial/.test(s);
+}
+
+function colunasPoc(sample) {
+  return {
+    status: pickColumn(sample, ['status','situacao','situação','resultado','conformidade','aderencia','aderência','atende']),
+    item: pickColumn(sample, ['item','requisito','funcionalidade','modulo','módulo','descricao','descrição','demanda','criterio','critério']) || Object.keys(sample || {})[0],
+    detail: pickColumn(sample, ['observacao','observação','comentario','comentário','detalhe','justificativa'])
+  };
+}
+
+async function carregarPoc(silencioso = false) {
+  const url = pocCsvUrl(pocConfig.sheetUrl);
+  if (!url) {
+    renderPocError('Informe o link da planilha da POC na tela de publicação.');
+    return;
+  }
+  try {
+    const csv = await fetchCsvUrl(url);
+    pocRows = csvToObjects(csv).filter(row => Object.values(row).some(v => String(v || '').trim()));
+    renderPocDashboard();
+  } catch(e) {
+    if (!silencioso) console.warn(e);
+    renderPocError(e.message);
+  }
+}
+
+function renderPocDashboard() {
+  if (!pocRows.length) {
+    renderPocError('Planilha da POC sem linhas publicadas.');
+    return;
+  }
+  const sample = pocRows[0];
+  const cols = colunasPoc(sample);
+  if (!cols.status) {
+    renderPocError('Não encontrei uma coluna de status, situação, resultado ou conformidade na planilha da POC.');
+    return;
+  }
+  const mapped = pocRows.map(row => {
+    const status = row[cols.status] || 'Não informado';
+    return {
+      row,
+      status,
+      item: row[cols.item] || 'Item sem descrição',
+      detail: row[cols.detail] || '',
+      conforme: isStatusConforme(status),
+      critico: statusCriticoPoc(status)
+    };
+  });
+  const total = mapped.length;
+  const conformes = mapped.filter(x => x.conforme).length;
+  const risco = total - conformes;
+  const percent = total ? Math.round((conformes / total) * 100) : 0;
+  document.getElementById('poc-total').textContent = total;
+  document.getElementById('poc-ok').textContent = conformes;
+  document.getElementById('poc-risk').textContent = risco;
+  document.getElementById('poc-percent').textContent = percent + '%';
+  document.getElementById('poc-date-kpi').textContent = pocConfig.schedule || 'A agendar';
+  renderBars('poc-status-bars', contarPor(pocRows, cols.status), total);
+
+  const attention = mapped.filter(x => !x.conforme || x.critico).slice(0, 8);
+  document.getElementById('poc-attention-list').innerHTML = attention.map(item => `
+    <div class="sheet-item ${item.critico ? 'danger' : 'warn'}">
+      <div><div class="sheet-item-title">${esc(item.item)}</div><div class="sheet-item-sub">${esc([item.status, item.detail].filter(Boolean).join(' • '))}</div></div>
+      <span class="sheet-pill">Atenção</span>
+    </div>`).join('') || '<div class="sheet-empty"><strong>Nenhum item crítico</strong><span>Todos os itens avaliados estão conformes.</span></div>';
+
+  document.getElementById('poc-ok-list').innerHTML = mapped.filter(x => x.conforme).slice(0, 8).map(item => `
+    <div class="sheet-item ok">
+      <div><div class="sheet-item-title">${esc(item.item)}</div><div class="sheet-item-sub">${esc(item.status)}</div></div>
+      <span class="sheet-pill">Conforme</span>
+    </div>`).join('') || '<div class="sheet-empty"><strong>Sem itens conformes</strong><span>Atualize os status da planilha da POC.</span></div>';
+
+  document.getElementById('poc-summary-list').innerHTML = `
+    <div class="sheet-item ok"><div><div class="sheet-item-title">Aderência sistêmica</div><div class="sheet-item-sub">${conformes} de ${total} itens conformes</div></div><span class="sheet-pill">${percent}%</span></div>
+    <div class="sheet-item warn"><div><div class="sheet-item-title">Agendamento da POC</div><div class="sheet-item-sub">${esc(pocConfig.schedule || 'A agendar')}</div></div><span class="sheet-pill">POC</span></div>
+    <div class="sheet-item ${risco ? 'danger' : 'ok'}"><div><div class="sheet-item-title">Itens pendentes / não conformes</div><div class="sheet-item-sub">${risco ? 'Exigem alinhamento antes da apresentação' : 'Sem pendências identificadas'}</div></div><span class="sheet-pill">${risco}</span></div>`;
+}
+
+function renderPocError(message) {
+  ['poc-total','poc-ok','poc-risk','poc-percent','poc-date-kpi'].forEach(id => document.getElementById(id).textContent = '—');
+  const html = `<div class="sheet-empty"><strong>POC não configurada</strong><span>${esc(message || '')}</span></div>`;
+  document.getElementById('poc-status-bars').innerHTML = html;
+  document.getElementById('poc-attention-list').innerHTML = html;
+  document.getElementById('poc-ok-list').innerHTML = html;
+  document.getElementById('poc-summary-list').innerHTML = html;
 }
 
 function renderSheetError(message) {
