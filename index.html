@@ -299,7 +299,7 @@
   <div class="footer">Última atualização: <span id="last-update">—</span> &nbsp;·&nbsp; VIVVER / CRESCER Tecnologia</div>
 </div>
 
-<div class="screen-indicator" id="screen-indicator">Licitações • troca em 2 min</div>
+<div class="screen-indicator" id="screen-indicator">Licitações • próxima troca em 02:00</div>
 
 <button class="tv-btn" onclick="ativarModoTV()" title="Modo TV (F2)">
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>
@@ -320,6 +320,8 @@ const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1EAAgIkYM_IS94SNU_
 let sheetRows = [];
 let sheetLoadedAt = '';
 let activeTvScreen = 'licitacoes';
+let tvNextSwitchAt = 0;
+let tvCountdownTimer = null;
 
 function updateClock() {
   const n = new Date();
@@ -483,6 +485,8 @@ function iniciarPainel() {
 function iniciarRotacaoTV() {
   if (!document.body.classList.contains('tv-mode')) return;
   mostrarTelaTV('licitacoes');
+  if (tvCountdownTimer) clearInterval(tvCountdownTimer);
+  tvCountdownTimer = setInterval(atualizarContadorTV, 1000);
   setInterval(() => {
     mostrarTelaTV(activeTvScreen === 'licitacoes' ? 'planilha' : 'licitacoes');
   }, DASHBOARD_ROTATE_MS);
@@ -490,9 +494,23 @@ function iniciarRotacaoTV() {
 
 function mostrarTelaTV(tela) {
   activeTvScreen = tela;
+  tvNextSwitchAt = Date.now() + DASHBOARD_ROTATE_MS;
   document.body.classList.toggle('show-sheet', tela === 'planilha');
-  const label = tela === 'planilha' ? 'Monitoramento • troca em 2 min' : 'Licitações • troca em 2 min';
-  document.getElementById('screen-indicator').textContent = label;
+  atualizarContadorTV();
+}
+
+function formatarContador(ms) {
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const min = String(Math.floor(total / 60)).padStart(2, '0');
+  const sec = String(total % 60).padStart(2, '0');
+  return `${min}:${sec}`;
+}
+
+function atualizarContadorTV() {
+  const el = document.getElementById('screen-indicator');
+  if (!el || !document.body.classList.contains('tv-mode')) return;
+  const label = activeTvScreen === 'planilha' ? 'Monitoramento' : 'Licitações';
+  el.textContent = `${label} • próxima troca em ${formatarContador(tvNextSwitchAt - Date.now())}`;
 }
 
 function renderStats() {
