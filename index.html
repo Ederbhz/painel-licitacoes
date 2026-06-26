@@ -41,7 +41,7 @@
   textarea { width: 100%; min-height: 90px; max-height: 180px; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 10px 12px; color: var(--text); font-family: inherit; font-size: 12px; resize: vertical; outline: none; line-height: 1.5; transition: border-color 0.15s; }
   textarea:focus { border-color: rgba(99,102,241,0.5); }
   textarea::placeholder { color: var(--text3); }
-  .poc-config { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(180px, 0.7fr); gap: 10px; margin-top: 10px; }
+  .poc-config { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(180px, 0.7fr) minmax(180px, 0.7fr); gap: 10px; margin-top: 10px; }
   .poc-field label { display: block; font-size: 11px; color: var(--text2); margin-bottom: 5px; }
   .poc-field input { width: 100%; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 9px 11px; color: var(--text); font-size: 12px; outline: none; }
   .poc-field input:focus { border-color: rgba(50,163,160,0.55); }
@@ -113,6 +113,7 @@
   .sheet-kpi { background: rgba(19,43,66,0.92); border: 0.5px solid rgba(255,255,255,0.13); border-radius: var(--radius); padding: 10px 14px; }
   .sheet-kpi-label { color: var(--text2); font-size: 12px; margin-bottom: 2px; }
   .sheet-kpi-value { font-size: 31px; line-height: 1; font-weight: 700; color: var(--text); }
+  .sheet-kpi-value.text { font-size: 19px; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sheet-kpi-value.warn { color: var(--amber-text); }
   .sheet-kpi-value.danger { color: var(--red-text); }
   .sheet-kpi-value.ok { color: var(--green-text); }
@@ -244,6 +245,10 @@
         <input id="poc-sheet-url" type="url" placeholder="Cole o link da planilha da POC deste edital">
       </div>
       <div class="poc-field">
+        <label for="poc-city">Município da POC</label>
+        <input id="poc-city" type="text" placeholder="Ex.: Paraíba do Sul / RJ">
+      </div>
+      <div class="poc-field">
         <label for="poc-date">Agendamento da POC</label>
         <input id="poc-date" type="text" placeholder="Ex.: 03/07 14h ou A agendar">
       </div>
@@ -258,6 +263,7 @@
         Publicar para TV
       </button>
       <button class="btn-secondary" onclick="document.getElementById('json-input').value=''">Limpar</button>
+      <button class="btn-secondary" onclick="aplicarPocConfig(getPocConfigFromInputs())">Carregar análise POC</button>
       <div id="status-area"></div>
     </div>
   </div>
@@ -329,7 +335,7 @@
       <div class="sheet-kpi"><div class="sheet-kpi-label">Conformes</div><div class="sheet-kpi-value ok" id="poc-ok">—</div></div>
       <div class="sheet-kpi"><div class="sheet-kpi-label">Pendentes / não conformes</div><div class="sheet-kpi-value danger" id="poc-risk">—</div></div>
       <div class="sheet-kpi"><div class="sheet-kpi-label">% aderência</div><div class="sheet-kpi-value warn" id="poc-percent">—</div></div>
-      <div class="sheet-kpi"><div class="sheet-kpi-label">Agendamento</div><div class="sheet-kpi-value" id="poc-date-kpi">—</div></div>
+      <div class="sheet-kpi"><div class="sheet-kpi-label">Município</div><div class="sheet-kpi-value text" id="poc-city-kpi">—</div></div>
     </div>
     <div class="sheet-panels">
       <div class="sheet-panel">
@@ -436,6 +442,7 @@ function aplicarProcessos(lista, origem, updatedAt) {
 function getPocConfigFromInputs() {
   return {
     sheetUrl: (document.getElementById('poc-sheet-url')?.value || '').trim(),
+    municipality: (document.getElementById('poc-city')?.value || '').trim(),
     schedule: (document.getElementById('poc-date')?.value || '').trim()
   };
 }
@@ -443,11 +450,14 @@ function getPocConfigFromInputs() {
 function aplicarPocConfig(config = {}) {
   pocConfig = {
     sheetUrl: (config.sheetUrl || '').trim(),
+    municipality: (config.municipality || '').trim(),
     schedule: (config.schedule || '').trim()
   };
   const urlInput = document.getElementById('poc-sheet-url');
+  const cityInput = document.getElementById('poc-city');
   const dateInput = document.getElementById('poc-date');
   if (urlInput) urlInput.value = pocConfig.sheetUrl || '';
+  if (cityInput) cityInput.value = pocConfig.municipality || '';
   if (dateInput) dateInput.value = pocConfig.schedule || '';
   localStorage.setItem(POC_CONFIG_STORAGE_KEY, JSON.stringify(pocConfig));
   carregarPoc(true);
@@ -862,16 +872,43 @@ function pocCsvUrl(sheetUrl) {
   return `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&gid=${gid}`;
 }
 
-function isStatusConforme(status) {
+const POC_STATUS_ORDER = [
+  'APROVADO',
+  'Aplicado',
+  'Em Desenvolvimento',
+  'Desenvolvido - Aplicar no Ambiente',
+  'Reavaliar',
+  'Reprovado'
+];
+
+function statusPocCanonico(status) {
   const s = norm(status);
-  if (!s) return false;
-  if (/nao|não|pendente|parcial|reprov|inconform|inapto|fora|ajust|desenvolv|custom/.test(s)) return false;
-  return /conforme|atende|aderente|ok|sim|aprov|cumpre|disponivel|disponível/.test(s);
+  if (!s) return 'Não informado';
+  if (/^aprovado$|aprovad/.test(s)) return 'APROVADO';
+  if (/^aplicado$|aplicad/.test(s)) return 'Aplicado';
+  if (/desenvolvido.*aplicar|aplicar.*ambiente/.test(s)) return 'Desenvolvido - Aplicar no Ambiente';
+  if (/desenvolv/.test(s)) return 'Em Desenvolvimento';
+  if (/reavali/.test(s)) return 'Reavaliar';
+  if (/reprov/.test(s)) return 'Reprovado';
+  return String(status || 'Não informado').trim() || 'Não informado';
+}
+
+function isStatusConforme(status) {
+  const canonical = statusPocCanonico(status);
+  return canonical === 'APROVADO' || canonical === 'Aplicado';
 }
 
 function statusCriticoPoc(status) {
-  const s = norm(status);
-  return /nao|não|pendente|reprov|inconform|inapto|fora|ajust|desenvolv|custom|parcial/.test(s);
+  const canonical = statusPocCanonico(status);
+  return canonical === 'Reprovado' || canonical === 'Reavaliar';
+}
+
+function contarStatusPoc(mapped) {
+  const counts = {};
+  mapped.forEach(item => counts[item.canonical] = (counts[item.canonical] || 0) + 1);
+  const ordered = POC_STATUS_ORDER.map(status => [status, counts[status] || 0]).filter(([, value]) => value > 0);
+  const extras = Object.entries(counts).filter(([status]) => !POC_STATUS_ORDER.includes(status)).sort((a,b) => b[1] - a[1]);
+  return ordered.concat(extras);
 }
 
 function colunasPoc(sample) {
@@ -911,9 +948,11 @@ function renderPocDashboard() {
   }
   const mapped = pocRows.map(row => {
     const status = row[cols.status] || 'Não informado';
+    const canonical = statusPocCanonico(status);
     return {
       row,
       status,
+      canonical,
       item: row[cols.item] || 'Item sem descrição',
       detail: row[cols.detail] || '',
       conforme: isStatusConforme(status),
@@ -928,30 +967,31 @@ function renderPocDashboard() {
   document.getElementById('poc-ok').textContent = conformes;
   document.getElementById('poc-risk').textContent = risco;
   document.getElementById('poc-percent').textContent = percent + '%';
-  document.getElementById('poc-date-kpi').textContent = pocConfig.schedule || 'A agendar';
-  renderBars('poc-status-bars', contarPor(pocRows, cols.status), total);
+  document.getElementById('poc-city-kpi').textContent = pocConfig.municipality || 'Não informado';
+  renderBars('poc-status-bars', contarStatusPoc(mapped), total);
 
   const attention = mapped.filter(x => !x.conforme || x.critico).slice(0, 8);
   document.getElementById('poc-attention-list').innerHTML = attention.map(item => `
     <div class="sheet-item ${item.critico ? 'danger' : 'warn'}">
-      <div><div class="sheet-item-title">${esc(item.item)}</div><div class="sheet-item-sub">${esc([item.status, item.detail].filter(Boolean).join(' • '))}</div></div>
+      <div><div class="sheet-item-title">${esc(item.item)}</div><div class="sheet-item-sub">${esc([item.canonical, item.detail].filter(Boolean).join(' • '))}</div></div>
       <span class="sheet-pill">Atenção</span>
     </div>`).join('') || '<div class="sheet-empty"><strong>Nenhum item crítico</strong><span>Todos os itens avaliados estão conformes.</span></div>';
 
   document.getElementById('poc-ok-list').innerHTML = mapped.filter(x => x.conforme).slice(0, 8).map(item => `
     <div class="sheet-item ok">
-      <div><div class="sheet-item-title">${esc(item.item)}</div><div class="sheet-item-sub">${esc(item.status)}</div></div>
+      <div><div class="sheet-item-title">${esc(item.item)}</div><div class="sheet-item-sub">${esc(item.canonical)}</div></div>
       <span class="sheet-pill">Conforme</span>
     </div>`).join('') || '<div class="sheet-empty"><strong>Sem itens conformes</strong><span>Atualize os status da planilha da POC.</span></div>';
 
   document.getElementById('poc-summary-list').innerHTML = `
-    <div class="sheet-item ok"><div><div class="sheet-item-title">Aderência sistêmica</div><div class="sheet-item-sub">${conformes} de ${total} itens conformes</div></div><span class="sheet-pill">${percent}%</span></div>
+    <div class="sheet-item ok"><div><div class="sheet-item-title">${esc(pocConfig.municipality || 'Município não informado')}</div><div class="sheet-item-sub">${conformes} de ${total} itens aprovados/aplicados</div></div><span class="sheet-pill">${percent}%</span></div>
     <div class="sheet-item warn"><div><div class="sheet-item-title">Agendamento da POC</div><div class="sheet-item-sub">${esc(pocConfig.schedule || 'A agendar')}</div></div><span class="sheet-pill">POC</span></div>
     <div class="sheet-item ${risco ? 'danger' : 'ok'}"><div><div class="sheet-item-title">Itens pendentes / não conformes</div><div class="sheet-item-sub">${risco ? 'Exigem alinhamento antes da apresentação' : 'Sem pendências identificadas'}</div></div><span class="sheet-pill">${risco}</span></div>`;
 }
 
 function renderPocError(message) {
-  ['poc-total','poc-ok','poc-risk','poc-percent','poc-date-kpi'].forEach(id => document.getElementById(id).textContent = '—');
+  ['poc-total','poc-ok','poc-risk','poc-percent'].forEach(id => document.getElementById(id).textContent = '—');
+  document.getElementById('poc-city-kpi').textContent = pocConfig.municipality || '—';
   const html = `<div class="sheet-empty"><strong>POC não configurada</strong><span>${esc(message || '')}</span></div>`;
   document.getElementById('poc-status-bars').innerHTML = html;
   document.getElementById('poc-attention-list').innerHTML = html;
