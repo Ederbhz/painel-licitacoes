@@ -579,8 +579,7 @@ function diasAte(date) {
 
 function classificarLinha(row, cols) {
   const status = String(row[cols.status] || '').toLowerCase();
-  const texto = Object.values(row).join(' ').toLowerCase();
-  const done = /(conclu|finaliz|entreg|feito|ok|resolvid|encerrad)/i.test(status + ' ' + texto);
+  const done = /(conclu|finaliz|entreg|resolvid|encerrad|homologad|adjudicad|contrato assinad)/i.test(status);
   const date = parseDataBR(row[cols.date]);
   const days = diasAte(date);
   const late = !done && days !== null && days < 0;
