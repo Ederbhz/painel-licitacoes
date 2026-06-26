@@ -326,17 +326,13 @@ h1 {
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
       </button>
     </div>
-    <div class="summary-card">
-      <p class="summary-label">Leitura executiva</p>
-      <p class="summary-title" id="executive-summary">Consolidando licitações, riscos e oportunidades em aberto.</p>
-    </div>
   </header>
 
   <section class="grid kpis" aria-label="Indicadores executivos">
     <article class="card kpi accent-teal">
-      <div class="kpi-label">Processos no painel</div>
+      <div class="kpi-label">Destaques da licitação</div>
       <div class="kpi-value" id="kpi-processos">-</div>
-      <div class="kpi-foot" id="kpi-processos-foot">Licitações acompanhadas na TV</div>
+      <div class="kpi-foot" id="kpi-processos-foot">Itens acompanhados no painel</div>
     </article>
     <article class="card kpi accent-orange">
       <div class="kpi-label">Prazos em 7 dias</div>
@@ -346,7 +342,7 @@ h1 {
     <article class="card kpi accent-green">
       <div class="kpi-label">Vitórias / contratos</div>
       <div class="kpi-value" id="kpi-vitorias">-</div>
-      <div class="kpi-foot">Itens vencidos, POC ou assinatura</div>
+      <div class="kpi-foot">Homologado, contrato ou POC aprovada</div>
     </article>
     <article class="card kpi accent-red">
       <div class="kpi-label">Riscos críticos</div>
@@ -364,7 +360,7 @@ h1 {
       <div class="risk-strip">
         <div class="risk-box amber"><strong id="risk-hoje">-</strong><span>para hoje</span></div>
         <div class="risk-box red"><strong id="risk-atraso">-</strong><span>atrasados</span></div>
-        <div class="risk-box green"><strong id="risk-valor">-</strong><span>valor estimado</span></div>
+        <div class="risk-box green"><strong id="risk-valor">-</strong><span>contratos ganhos</span></div>
       </div>
     </div>
   </section>
@@ -412,7 +408,7 @@ h1 {
 
   <section class="section">
     <div class="section-head">
-      <h2 class="section-title">Destaques da TV</h2>
+      <h2 class="section-title">Destaques da Licitação</h2>
       <span class="section-note">resumo operacional</span>
     </div>
     <div class="card panel">
@@ -647,7 +643,7 @@ function renderDashboard() {
   const sheet = planilha.map(row => ({row, meta: sheetMeta(row, cols)}));
   const ganhos = ganhosMeta(ganhosPlanilha);
   const procText = processos.map(p => Object.values(p).join(' '));
-  const totalValor = sheet.reduce((sum, item) => sum + item.meta.value, 0);
+  const valorGanhos = ganhos.reduce((sum, item) => sum + item.value, 0);
   const proximosSheet = sheet.filter(item => item.meta.soon).length;
   const atrasosSheet = sheet.filter(item => item.meta.late).length;
   const proximosPainel = processos.filter(p => {
@@ -660,17 +656,13 @@ function renderDashboard() {
   const riscosTotal = riscosPainel + atrasosSheet;
 
   $('kpi-processos').textContent = processos.length;
-  $('kpi-processos-foot').textContent = planilha.length + ' oportunidades na planilha';
+  $('kpi-processos-foot').textContent = planilha.length + ' oportunidades em monitoramento';
   $('kpi-proximos').textContent = proximosPainel + proximosSheet;
   $('kpi-vitorias').textContent = vitorias;
   $('kpi-riscos').textContent = riscosTotal;
   $('risk-hoje').textContent = hojePainel;
   $('risk-atraso').textContent = atrasosSheet;
-  $('risk-valor').textContent = fmtMoneyShort(totalValor);
-
-  const fraseRisco = riscosTotal ? `${riscosTotal} ponto(s) de atenção pedem acompanhamento próximo.` : 'Sem risco crítico identificado nos dados atuais.';
-  const fraseValor = totalValor ? `Carteira estimada em ${fmtMoneyShort(totalValor)} na planilha.` : 'Valores estimados ainda não consolidados.';
-  $('executive-summary').textContent = `${processos.length} processos na TV, ${planilha.length} oportunidades em monitoramento e ${ganhos.length} ganho(s) em contrato/homologação/POC. ${fraseRisco} ${fraseValor}`;
+  $('risk-valor').textContent = fmtMoneyShort(valorGanhos);
 
   const prioridadesSheet = sheet
     .filter(item => item.meta.soon || item.meta.late || item.meta.risk)
@@ -709,7 +701,7 @@ function renderDashboard() {
         sub: [p.sub, p.destaque, p.update].filter(Boolean).join(' • ')
       };
     });
-  renderItems('tv-highlights', highlights, 'Sem destaques operacionais no painel da TV.');
+  renderItems('tv-highlights', highlights, 'Sem destaques operacionais da licitação.');
   $('updated').textContent = 'Atualizado em ' + nowLabel();
 }
 
@@ -717,7 +709,6 @@ function renderError(message) {
   ['priority-list','won-list','status-bars','owner-bars','tv-highlights'].forEach(id => {
     $(id).innerHTML = `<div class="error">${esc(message)}</div>`;
   });
-  $('executive-summary').textContent = 'Não foi possível consolidar os dados agora.';
   $('updated').textContent = 'Falha ao atualizar em ' + nowLabel();
 }
 

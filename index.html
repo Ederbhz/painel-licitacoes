@@ -111,7 +111,7 @@
   .sheet-kpi-value.warn { color: var(--amber-text); }
   .sheet-kpi-value.danger { color: var(--red-text); }
   .sheet-kpi-value.ok { color: var(--green-text); }
-  .sheet-panels { display: grid; grid-template-columns: 1.2fr 0.9fr 0.9fr; gap: 10px; min-height: 0; flex: 1; }
+  .sheet-panels { display: grid; grid-template-columns: 1.08fr 1.12fr 0.78fr 0.92fr; gap: 10px; min-height: 0; flex: 1; }
   .sheet-panel { background: rgba(19,43,66,0.94); border: 0.5px solid rgba(255,255,255,0.13); border-radius: var(--radius-lg); padding: 12px 14px; min-height: 0; overflow: hidden; }
   .sheet-panel h3 { font-size: 14px; line-height: 1.2; margin-bottom: 9px; color: var(--text); font-weight: 700; }
   .sheet-list { display: flex; flex-direction: column; gap: 7px; min-height: 0; }
@@ -284,6 +284,10 @@
       <div class="sheet-panel">
         <h3>Prioridades e prazos</h3>
         <div class="sheet-list" id="sheet-priority-list"></div>
+      </div>
+      <div class="sheet-panel">
+        <h3>Analistas / demandas</h3>
+        <div class="sheet-list" id="sheet-analyst-list"></div>
       </div>
       <div class="sheet-panel">
         <h3>Distribuição por status</h3>
@@ -660,6 +664,41 @@ function renderGanhosTV(ganhos) {
   }).join('') || '<div class="sheet-empty"><strong>Sem ganhos nos status acompanhados</strong><span>Aba PROCESSOS GANHOS/REPROVADOS sem itens homologados, contrato ou POC aprovada.</span></div>';
 }
 
+function tituloDemanda(row, preferredCol) {
+  const preferred = String(row[preferredCol] || '').trim();
+  if (preferred) return preferred;
+  const keys = Object.keys(row || {});
+  const fallback = keys.find(k => ['municipio','orgao','órgao','cliente','processo','pregao','dispensa','nome'].some(term => norm(k).includes(norm(term))) && String(row[k] || '').trim());
+  return fallback ? String(row[fallback] || '').trim() : 'Sem título';
+}
+
+function renderDemandasAnalistas(classified, cols) {
+  const target = document.getElementById('sheet-analyst-list');
+  if (!target) return;
+  const demandas = classified
+    .filter(x => !x.meta.done)
+    .map(({row, meta}) => ({
+      owner: row[cols.owner] || 'Não definido',
+      title: tituloDemanda(row, cols.title),
+      status: row[cols.status] || 'Sem status',
+      dateLabel: meta.date ? row[cols.date] : 'Sem prazo',
+      days: meta.days,
+      late: meta.late,
+      soon: meta.soon
+    }))
+    .sort((a, b) => (a.days ?? 9999) - (b.days ?? 9999))
+    .slice(0, 8);
+
+  target.innerHTML = demandas.map(item => {
+    const risk = item.late ? 'danger' : item.soon ? 'warn' : '';
+    const prazo = item.late ? Math.abs(item.days) + 'd atraso' : item.days !== null && item.days !== undefined ? item.days + 'd' : item.dateLabel;
+    return `<div class="sheet-item ${risk}">
+      <div><div class="sheet-item-title">${esc(item.owner)}</div><div class="sheet-item-sub">${esc(item.title)} • ${esc(item.status)}</div></div>
+      <span class="sheet-pill">${esc(prazo)}</span>
+    </div>`;
+  }).join('') || '<div class="sheet-empty"><strong>Sem demandas abertas</strong><span>Nenhuma demanda com analista na planilha.</span></div>';
+}
+
 function renderSheetDashboard() {
   const rows = sheetRows;
   if (!rows.length) {
@@ -697,11 +736,12 @@ function renderSheetDashboard() {
     const prazo = meta.late ? Math.abs(meta.days) + 'd atraso' : meta.soon ? meta.days + 'd' : dateLabel;
     const sub = [row[cols.status], row[cols.owner], row[cols.detail]].filter(Boolean).join(' • ');
     return `<div class="sheet-item ${risk}">
-      <div><div class="sheet-item-title">${esc(row[cols.title] || 'Sem título')}</div><div class="sheet-item-sub">${esc(sub || dateLabel)}</div></div>
+      <div><div class="sheet-item-title">${esc(tituloDemanda(row, cols.title))}</div><div class="sheet-item-sub">${esc(sub || dateLabel)}</div></div>
       <span class="sheet-pill">${esc(prazo)}</span>
     </div>`;
   }).join('') || '<div class="sheet-empty"><strong>Nada pendente</strong><span>Sem itens em aberto na planilha.</span></div>';
 
+  renderDemandasAnalistas(classified, cols);
   renderBars('sheet-status-bars', contarPor(rows, cols.status || cols.title), total);
   renderGanhosTV(ganhos);
 }
@@ -734,6 +774,7 @@ function renderSheetError(message) {
     <span>${esc(message || '')}</span>
   </div>`;
   document.getElementById('sheet-priority-list').innerHTML = html;
+  document.getElementById('sheet-analyst-list').innerHTML = html;
   document.getElementById('sheet-status-bars').innerHTML = html;
   document.getElementById('sheet-won-list').innerHTML = html;
 }
